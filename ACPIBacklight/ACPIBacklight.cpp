@@ -138,19 +138,21 @@ bool ACPIBacklightPanel::setDisplay( IODisplay * display )
 }
 
 
-bool ACPIBacklightPanel::doIntegerSet( OSDictionary * params, const OSSymbol * paramName, UInt32 value )
+bool ACPIBacklightPanel::doIntegerSet( OSDictionary * params, const OSSymbol * paramName, UInt32 osxValue )
 {
     if ( gIODisplayBrightnessKey->isEqualTo(paramName) )
     {   
-        DbgLog("%s::%s(%s)\n", this->getName(),__FUNCTION__, paramName->getCStringNoCopy());
-        setACPIBrightnessLevel( BCLlevels[(UInt32)value]);
-        this->value = value;
+        UInt32 drvValue = osxValue * (max-min) / 0x400 + min;
+        DbgLog("%s::%s(%s) map %d -> %d\n", this->getName(),__FUNCTION__, paramName->getCStringNoCopy(), (unsigned int)osxValue, (unsigned int)drvValue);
+        setACPIBrightnessLevel( BCLlevels[drvValue % BCLlevelsCount]);
+        this->value = drvValue;
         return true;
     }
     else if (gIODisplayParametersCommitKey->isEqualTo(paramName) )
     {
-        DbgLog("%s::%s(%s)\n", this->getName(),__FUNCTION__, paramName->getCStringNoCopy());
-        IODisplay::setParameter(params, gIODisplayBrightnessKey, this->value);
+        UInt32 osxValue = ((this->value-min) * 0x400 / (max-min));
+        DbgLog("%s::%s(%s) map %d -> %d\n", this->getName(),__FUNCTION__, paramName->getCStringNoCopy(), (unsigned int)osxValue, (unsigned int)this->value);
+        IODisplay::setParameter(params, gIODisplayBrightnessKey, osxValue);
         if (hasSaveMethod)
             saveACPIBrightnessLevel(BCLlevels[(UInt32)this->value]);
         return true;
@@ -187,8 +189,8 @@ bool ACPIBacklightPanel::doUpdate( void )
 	{				
 		DbgLog("%s: ACPILevel min %d, max %d, value %d\n", this->getName(), (int)min, (int)max, (int)value);
 		
-        IODisplay::addParameter(backlightParams, gIODisplayBrightnessKey, min, max);
-        IODisplay::setParameter(backlightParams, gIODisplayBrightnessKey, value);
+        IODisplay::addParameter(backlightParams, gIODisplayBrightnessKey, 0x000, 0x400);
+        IODisplay::setParameter(backlightParams, gIODisplayBrightnessKey, ((value-min) * 0x400 / (max-min)));
         
         OSNumber * num = OSNumber::withNumber(0ULL, 32);
         OSDictionary * commitParams = OSDictionary::withCapacity(1);

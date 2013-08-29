@@ -1,0 +1,317 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 46;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		71958FCE1417F35100A9E81D /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 71958FCC1417F35100A9E81D /* InfoPlist.strings */; };
+		71958FD01417F35100A9E81D /* ACPIBacklight.h in Headers */ = {isa = PBXBuildFile; fileRef = 71958FCF1417F35100A9E81D /* ACPIBacklight.h */; };
+		71958FD21417F35100A9E81D /* ACPIBacklight.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 71958FD11417F35100A9E81D /* ACPIBacklight.cpp */; };
+		71958FDA1417F6AB00A9E81D /* Debug.h in Headers */ = {isa = PBXBuildFile; fileRef = 71958FD91417F6AB00A9E81D /* Debug.h */; };
+		71958FE314181ACA00A9E81D /* ACPIBacklight-Prefix.pch in Headers */ = {isa = PBXBuildFile; fileRef = 71958FE214181ACA00A9E81D /* ACPIBacklight-Prefix.pch */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		71958FC41417F35100A9E81D /* ACPIBacklight.kext */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ACPIBacklight.kext; sourceTree = BUILT_PRODUCTS_DIR; };
+		71958FC81417F35100A9E81D /* Kernel.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Kernel.framework; path = System/Library/Frameworks/Kernel.framework; sourceTree = SDKROOT; };
+		71958FCB1417F35100A9E81D /* ACPIBacklight-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "ACPIBacklight-Info.plist"; sourceTree = "<group>"; };
+		71958FCD1417F35100A9E81D /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
+		71958FCF1417F35100A9E81D /* ACPIBacklight.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ACPIBacklight.h; sourceTree = "<group>"; };
+		71958FD11417F35100A9E81D /* ACPIBacklight.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ACPIBacklight.cpp; sourceTree = "<group>"; };
+		71958FD91417F6AB00A9E81D /* Debug.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Debug.h; sourceTree = "<group>"; };
+		71958FE214181ACA00A9E81D /* ACPIBacklight-Prefix.pch */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "ACPIBacklight-Prefix.pch"; sourceTree = "<group>"; };
+		71DF69401449941100A94D0B /* video.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = video.c; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		71958FBF1417F35100A9E81D /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		71958FB71417F35100A9E81D = {
+			isa = PBXGroup;
+			children = (
+				71958FC91417F35100A9E81D /* ACPIBacklight */,
+				71DF693E144993DC00A94D0B /* Linux ref */,
+				71958FC61417F35100A9E81D /* Frameworks */,
+				71958FC51417F35100A9E81D /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		71958FC51417F35100A9E81D /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				71958FC41417F35100A9E81D /* ACPIBacklight.kext */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		71958FC61417F35100A9E81D /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				71958FC71417F35100A9E81D /* Other Frameworks */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		71958FC71417F35100A9E81D /* Other Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				71958FC81417F35100A9E81D /* Kernel.framework */,
+			);
+			name = "Other Frameworks";
+			sourceTree = "<group>";
+		};
+		71958FC91417F35100A9E81D /* ACPIBacklight */ = {
+			isa = PBXGroup;
+			children = (
+				71958FCF1417F35100A9E81D /* ACPIBacklight.h */,
+				71958FD11417F35100A9E81D /* ACPIBacklight.cpp */,
+				71958FD91417F6AB00A9E81D /* Debug.h */,
+				71958FCA1417F35100A9E81D /* Supporting Files */,
+			);
+			path = ACPIBacklight;
+			sourceTree = "<group>";
+		};
+		71958FCA1417F35100A9E81D /* Supporting Files */ = {
+			isa = PBXGroup;
+			children = (
+				71958FE214181ACA00A9E81D /* ACPIBacklight-Prefix.pch */,
+				71958FCB1417F35100A9E81D /* ACPIBacklight-Info.plist */,
+				71958FCC1417F35100A9E81D /* InfoPlist.strings */,
+			);
+			name = "Supporting Files";
+			sourceTree = "<group>";
+		};
+		71DF693E144993DC00A94D0B /* Linux ref */ = {
+			isa = PBXGroup;
+			children = (
+				71DF69401449941100A94D0B /* video.c */,
+			);
+			name = "Linux ref";
+			path = ACPIBacklight;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXHeadersBuildPhase section */
+		71958FC01417F35100A9E81D /* Headers */ = {
+			isa = PBXHeadersBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				71958FD01417F35100A9E81D /* ACPIBacklight.h in Headers */,
+				71958FDA1417F6AB00A9E81D /* Debug.h in Headers */,
+				71958FE314181ACA00A9E81D /* ACPIBacklight-Prefix.pch in Headers */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXHeadersBuildPhase section */
+
+/* Begin PBXNativeTarget section */
+		71958FC31417F35100A9E81D /* ACPIBacklight */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 71958FD61417F35100A9E81D /* Build configuration list for PBXNativeTarget "ACPIBacklight" */;
+			buildPhases = (
+				71958FBE1417F35100A9E81D /* Sources */,
+				71958FBF1417F35100A9E81D /* Frameworks */,
+				71958FC01417F35100A9E81D /* Headers */,
+				71958FC11417F35100A9E81D /* Resources */,
+				71958FC21417F35100A9E81D /* Rez */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = ACPIBacklight;
+			productName = ACPIBacklight;
+			productReference = 71958FC41417F35100A9E81D /* ACPIBacklight.kext */;
+			productType = "com.apple.product-type.kernel-extension";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		71958FB91417F35100A9E81D /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastUpgradeCheck = 0410;
+			};
+			buildConfigurationList = 71958FBC1417F35100A9E81D /* Build configuration list for PBXProject "ACPIBacklight" */;
+			compatibilityVersion = "Xcode 3.2";
+			developmentRegion = English;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+			);
+			mainGroup = 71958FB71417F35100A9E81D;
+			productRefGroup = 71958FC51417F35100A9E81D /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				71958FC31417F35100A9E81D /* ACPIBacklight */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		71958FC11417F35100A9E81D /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				71958FCE1417F35100A9E81D /* InfoPlist.strings in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXRezBuildPhase section */
+		71958FC21417F35100A9E81D /* Rez */ = {
+			isa = PBXRezBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXRezBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		71958FBE1417F35100A9E81D /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				71958FD21417F35100A9E81D /* ACPIBacklight.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXVariantGroup section */
+		71958FCC1417F35100A9E81D /* InfoPlist.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				71958FCD1417F35100A9E81D /* en */,
+			);
+			name = InfoPlist.strings;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
+
+/* Begin XCBuildConfiguration section */
+		71958FD41417F35100A9E81D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ARCHS = "$(ARCHS_STANDARD_32_64_BIT)";
+				COPY_PHASE_STRIP = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_MISSING_PROTOTYPES = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.6;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx10.6;
+				STRIP_STYLE = all;
+			};
+			name = Debug;
+		};
+		71958FD51417F35100A9E81D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ARCHS = "$(ARCHS_STANDARD_32_64_BIT)";
+				COPY_PHASE_STRIP = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
+				GCC_GENERATE_DEBUGGING_SYMBOLS = NO;
+				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_MISSING_PROTOTYPES = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.6;
+				SDKROOT = macosx10.6;
+				STRIP_STYLE = all;
+			};
+			name = Release;
+		};
+		71958FD71417F35100A9E81D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = "$(ARCHS_STANDARD_32_64_BIT)";
+				CURRENT_PROJECT_VERSION = 1.0.0d1;
+				GCC_PRECOMPILE_PREFIX_HEADER = YES;
+				GCC_PREFIX_HEADER = "ACPIBacklight/ACPIBacklight-Prefix.pch";
+				GCC_VERSION = com.apple.compilers.llvmgcc42;
+				INFOPLIST_FILE = "ACPIBacklight/ACPIBacklight-Info.plist";
+				MACOSX_DEPLOYMENT_TARGET = 10.7;
+				MODULE_NAME = com.darwin.driver.ACPIBacklight;
+				MODULE_VERSION = 1.0.0d1;
+				ONLY_ACTIVE_ARCH = NO;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				WRAPPER_EXTENSION = kext;
+			};
+			name = Debug;
+		};
+		71958FD81417F35100A9E81D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = "$(ARCHS_STANDARD_32_64_BIT)";
+				CURRENT_PROJECT_VERSION = 1.0.0d1;
+				GCC_PRECOMPILE_PREFIX_HEADER = YES;
+				GCC_PREFIX_HEADER = "ACPIBacklight/ACPIBacklight-Prefix.pch";
+				GCC_VERSION = com.apple.compilers.llvmgcc42;
+				INFOPLIST_FILE = "ACPIBacklight/ACPIBacklight-Info.plist";
+				MACOSX_DEPLOYMENT_TARGET = 10.7;
+				MODULE_NAME = com.darwin.driver.ACPIBacklight;
+				MODULE_VERSION = 1.0.0d1;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				WRAPPER_EXTENSION = kext;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		71958FBC1417F35100A9E81D /* Build configuration list for PBXProject "ACPIBacklight" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				71958FD41417F35100A9E81D /* Debug */,
+				71958FD51417F35100A9E81D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		71958FD61417F35100A9E81D /* Build configuration list for PBXNativeTarget "ACPIBacklight" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				71958FD71417F35100A9E81D /* Debug */,
+				71958FD81417F35100A9E81D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 71958FB91417F35100A9E81D /* Project object */;
+}

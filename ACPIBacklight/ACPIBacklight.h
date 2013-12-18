@@ -26,6 +26,7 @@
 #include <IOKit/IOService.h>
 #include <IOKit/graphics/IODisplay.h>
 #include <IOKit/acpi/IOACPIPlatformDevice.h>
+#include <IOKit/IOTimerEventSource.h>
 
 
 class ACPIBacklightPanel : public IODisplayParameterHandler
@@ -52,6 +53,9 @@ private:
     
     IOACPIPlatformDevice *  gpuDevice, * backLightDevice;
 	OSData * supportedLevels;
+
+    IOInterruptEventSource* _workSource;
+    IOTimerEventSource* _smoothTimer;
     
     const IORegistryPlane * IOACPIPlane;
     bool findDevices(IOService * provider);
@@ -74,12 +78,19 @@ private:
 	SInt32 getIndexForLevel(SInt32 BCLvalue);
 	SInt32 * BCLlevels;
 	UInt32 BCLlevelsCount;
-	UInt32 minAC, maxBat, min, max, value;
+	UInt32 minAC, maxBat, min, max;
 	bool hasSaveMethod;
+    UInt32 _value;  // osx value
+    UInt32 _index;  // driver index into BCLLevels
     
 	void getDeviceControl();
     
 	IOService * getBatteryDevice();
 	bool getACStatus();
+
+    void  processWorkQueue(IOInterruptEventSource *, int);
+    void  onSmoothTimer(void);
+    void saveACPIBrightnessLevelNVRAM(UInt32 level);
+    UInt32 loadFromNVRAM(void);
 };
 #endif

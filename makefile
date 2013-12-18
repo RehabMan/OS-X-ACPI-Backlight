@@ -1,5 +1,6 @@
 KEXT=ACPIBacklight.kext
 DIST=RehabMan-Backlight
+INSTDIR=/System/Library/Extensions
 
 ifeq ($(findstring 32,$(BITS)),32)
 OPTIONS:=$(OPTIONS) -arch i386
@@ -26,12 +27,12 @@ update_kernelcache:
 
 .PHONY: install_debug
 install_debug:
-	sudo cp -R ./Build/Debug/$(KEXT) /System/Library/Extensions
+	sudo cp -R ./Build/Debug/$(KEXT) $(INSTDIR)
 	make update_kernelcache
 
 .PHONY: install
 install:
-	sudo cp -R ./Build/Release/$(KEXT) /System/Library/Extensions
+	sudo cp -R ./Build/Release/$(KEXT) $(INSTDIR)
 	make update_kernelcache
 
 .PHONY: distribute

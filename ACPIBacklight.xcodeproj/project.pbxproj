@@ -12,7 +12,6 @@
 		71958FDA1417F6AB00A9E81D /* Debug.h in Headers */ = {isa = PBXBuildFile; fileRef = 71958FD91417F6AB00A9E81D /* Debug.h */; };
 		71958FE314181ACA00A9E81D /* ACPIBacklight-Prefix.pch in Headers */ = {isa = PBXBuildFile; fileRef = 71958FE214181ACA00A9E81D /* ACPIBacklight-Prefix.pch */; };
 		8407B9261858EBB50011E5FB /* ACPIBacklight.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 71958FD11417F35100A9E81D /* ACPIBacklight.cpp */; };
-		8407B9271858EBC30011E5FB /* ACPIBacklight-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 71958FCB1417F35100A9E81D /* ACPIBacklight-Info.plist */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -168,7 +167,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				71958FCE1417F35100A9E81D /* InfoPlist.strings in Resources */,
-				8407B9271858EBC30011E5FB /* ACPIBacklight-Info.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

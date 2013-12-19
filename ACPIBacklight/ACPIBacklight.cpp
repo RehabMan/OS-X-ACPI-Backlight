@@ -27,6 +27,8 @@
 
 OSDefineMetaClassAndStructors(ACPIBacklightPanel, IODisplayParameterHandler)
 
+#define kACPIBacklightLevel "acpi-backlight-level"
+
 
 #pragma mark -
 #pragma mark IOService functions override
@@ -44,9 +46,7 @@ bool ACPIBacklightPanel::init()
 
     _workSource = NULL;
     _smoothTimer = NULL;
-	
-    IOACPIPlane = IORegistryEntry::getPlane("IOACPIPlane");
-    
+
 	return super::init();
 }
 
@@ -54,8 +54,6 @@ bool ACPIBacklightPanel::init()
 IOService * ACPIBacklightPanel::probe( IOService * provider, SInt32 * score )
 {
     DbgLog("%s::%s()\n", this->getName(),__FUNCTION__);
-    
-    IOACPIPlane = IORegistryEntry::getPlane("IOACPIPlane");
     
     bool hasFound = findDevices(provider);
     DbgLog("%s: probe(devices found : %s)\n", this->getName(), (hasFound ? "true" : "false") );
@@ -82,22 +80,20 @@ bool ACPIBacklightPanel::start( IOService * provider )
     // load and set default brightness level
     UInt32 value = loadFromNVRAM();
     DbgLog("ACPIBacklightPanel: loadFromNVRAM returns %d\n", value);
-    if (-1 == value)
+    UInt32 index;
+    if (-1 != value)
     {
-        ////_index = getIndexForLevel(queryACPICurentBrightnessLevel());
-        value = queryACPICurentBrightnessLevel();
-        DbgLog("ACPIBacklightPanel: query returns %d\n", value);
-        //REVIEW: this is wrong interpretation of minAC/macBat
-        // initialise depending on the AC or Bat status
-        if (getACStatus())
-            value = max(minAC, value);
-        else
-            value = min(maxBat, value);
+        DbgLog("ACPIBacklightPanel: setting to value from nvram %d\n", value);
+        _value = value;
+        index = indexForLevel(value);
+        setACPIBrightnessLevel(BCLlevels[index]);
     }
-    DbgLog("ACPIBacklightPanel: setting to adjusted value %d\n", value);
-    _index = getIndexForLevel(value);
-    _value = ((_index-min) * 0x400 + (max-min)/2) / (max-min);
-    setACPIBrightnessLevel(BCLlevels[_index]);
+    else
+    {
+        DbgLog("ACPIBacklightPanel: no value from nvram, setting value from current\n");
+        index = findIndexForLevel(queryACPICurentBrightnessLevel());
+        _value = levelForIndex(index);
+    }
 
     // add interrupt source for delayed actions...
     _workSource = IOInterruptEventSource::interruptEventSource(this, OSMemberFunctionCast(IOInterruptEventAction, this, &ACPIBacklightPanel::processWorkQueue));
@@ -117,9 +113,9 @@ bool ACPIBacklightPanel::start( IOService * provider )
     if (_smoothTimer)
         workLoop->addEventSource(_smoothTimer);
 
-    DbgLog("%s: min = %u, max = %u, index = %u, value = %u\n", this->getName(), min, max, _index, _value);
-	
+    DbgLog("%s: min = %u, max = %u, index = %u, value = %u\n", this->getName(), min, max, index, _value);
 	IOLog("%s: Version 1.2\n", this->getName());
+
 	return true;
 }
 
@@ -179,6 +175,17 @@ void ACPIBacklightPanel::free()
 #pragma mark IODisplayParameterHandler functions override
 #pragma mark -
 
+UInt32 ACPIBacklightPanel::indexForLevel(UInt32 value)
+{
+    UInt32 index = value * (max-min) / 0x400 + min;
+    return index;
+}
+
+UInt32 ACPIBacklightPanel::levelForIndex(UInt32 index)
+{
+    UInt32 value = ((index-min) * 0x400 + (max-min)/2) / (max-min);
+    return value;
+}
 
 bool ACPIBacklightPanel::setDisplay( IODisplay * display )
 {    
@@ -193,7 +200,7 @@ bool ACPIBacklightPanel::setDisplay( IODisplay * display )
     if (_display)
     {
         doUpdate();
-        setACPIBrightnessLevel(BCLlevels[_index]);
+        setACPIBrightnessLevel(BCLlevels[indexForLevel(_value)]);
     }
     return true;
 }
@@ -201,48 +208,26 @@ bool ACPIBacklightPanel::setDisplay( IODisplay * display )
 
 bool ACPIBacklightPanel::doIntegerSet( OSDictionary * params, const OSSymbol * paramName, UInt32 value )
 {
-    DbgLog("ACPIBacklight: doIntegerSet(\"%s\", %d)\n", paramName->getCStringNoCopy(), value);
+    //DbgLog("ACPIBacklight: doIntegerSet(\"%s\", %d)\n", paramName->getCStringNoCopy(), value);
     if ( gIODisplayBrightnessKey->isEqualTo(paramName))
     {   
-        UInt32 index = value * (max-min) / 0x400 + min;
-        DbgLog("%s::%s(%s) map %d -> %d\n", this->getName(),__FUNCTION__, paramName->getCStringNoCopy(), (unsigned int)_value, (unsigned int)_index);
-        _index = index;
+        UInt32 index = indexForLevel(value);
+        DbgLog("%s::%s(%s) map %d -> %d\n", this->getName(),__FUNCTION__, paramName->getCStringNoCopy(), value, index);
         _value = value;
-        setACPIBrightnessLevel(BCLlevels[_index]);
-        //saveACPIBrightnessLevelNVRAM(BCLlevels[this->value]);
+        setACPIBrightnessLevel(BCLlevels[index]);
         // save to NVRAM in work loop
         _workSource->interruptOccurred(0, 0, 0);
         return true;
     }
     else if (gIODisplayParametersCommitKey->isEqualTo(paramName))
     {
-        UInt32 temp = ((_index-min) * 0x400 + (max-min)/2) / (max-min);
-        DbgLog("%s::%s(%s) map %d -> %d (%d,%d)\n", this->getName(),__FUNCTION__, paramName->getCStringNoCopy(), value, _index, _value, temp);
-        ////IODisplay::setParameter(params, gIODisplayBrightnessKey, value);
+        UInt32 index = indexForLevel(value);
+        DbgLog("%s::%s(%s) map %d -> %d\n", this->getName(),__FUNCTION__, paramName->getCStringNoCopy(), value, index);
         IODisplay::setParameter(params, gIODisplayBrightnessKey, value);
         if (hasSaveMethod)
-            saveACPIBrightnessLevel(BCLlevels[_index]);
-        //else
-        //    saveACPIBrightnessLevelNVRAM(BCLlevels[_index]);
+            saveACPIBrightnessLevel(BCLlevels[index]);
         return true;
     }
-#if 0
-    else if (gIODisplayLinearBrightnessKey->isEqualTo(paramName))
-    {
-        UInt32 value = ((_index-min) * 0x710 + (max-min)/2) / (max-min);
-        DbgLog("%s::%s(%s) map %d -> %d\n", this->getName(),__FUNCTION__, paramName->getCStringNoCopy(), (unsigned int)osxValue, (unsigned int)this->value);
-        IODisplay::setParameter(params, gIODisplayLinearBrightnessKey, osxValue);
-        //if (hasSaveMethod)
-        //    saveACPIBrightnessLevel(BCLlevels[(UInt32)this->value]);
-        //else
-        //    saveACPIBrightnessLevelNVRAM(BCLlevels[(UInt32)this->value]);
-        return true;
-    }
-    else if (gIODisplayParametersFlushKey->isEqualTo(paramName))
-    {
-        doUpdate();
-    }
-#endif
     return false;
 }
 
@@ -256,30 +241,27 @@ bool ACPIBacklightPanel::doDataSet( const OSSymbol * paramName, OSData * value )
 
 bool ACPIBacklightPanel::doUpdate( void )
 {
-    DbgLog("Entering %s::%s()\n", this->getName(),__FUNCTION__);
+    //DbgLog("Entering %s::%s()\n", this->getName(),__FUNCTION__);
     bool result = false;
 
-    //REVIEW: myParams is not used...
-    OSDictionary * backlightParams, * allParams, * myParams;
-    OSDictionary *   newDict = 0;
-    
-	allParams = OSDynamicCast(OSDictionary, _display->copyProperty(gIODisplayParametersKey));
+    OSDictionary* newDict = 0;
+	OSDictionary* allParams = OSDynamicCast(OSDictionary, _display->copyProperty(gIODisplayParametersKey));
     if (allParams)
     {
         newDict = OSDictionary::withDictionary(allParams);
         allParams->release();
     }
     
-    backlightParams = OSDictionary::withCapacity(2);
-////    OSDictionary* linearParams = OSDictionary::withCapacity(2);
-    
-    myParams  = OSDynamicCast(OSDictionary, copyProperty(gIODisplayParametersKey));
+    OSDictionary* backlightParams = OSDictionary::withCapacity(2);
+    ////OSDictionary* linearParams = OSDictionary::withCapacity(2);
+
+    //REVIEW_REHABMAN: myParams is not used...
+    OSDictionary* myParams  = OSDynamicCast(OSDictionary, copyProperty(gIODisplayParametersKey));
     if (/*linearParams && */backlightParams && myParams)
 	{				
-		DbgLog("%s: ACPILevel min %d, max %d, index %d, value %d\n", this->getName(), (int)min, (int)max, (int)_index, _value);
+		DbgLog("%s: ACPILevel min %d, max %d, value %d\n", this->getName(), min, max, _value);
 		
         IODisplay::addParameter(backlightParams, gIODisplayBrightnessKey, 0x000, 0x400);
-        ////IODisplay::setParameter(backlightParams, gIODisplayBrightnessKey, ((_index-min) * 0x400 + (max-min)/2) / (max-min));
         IODisplay::setParameter(backlightParams, gIODisplayBrightnessKey, _value);
 
         ////IODisplay::addParameter(linearParams, gIODisplayLinearBrightnessKey, 0, 0x710);
@@ -295,7 +277,7 @@ bool ACPIBacklightPanel::doUpdate( void )
         if (newDict)
         {
             newDict->merge(backlightParams);
-          ////  newDict->merge(linearParams);
+            ////newDict->merge(linearParams);
             _display->setProperty(gIODisplayParametersKey, newDict);
             newDict->release();
         }
@@ -312,7 +294,7 @@ bool ACPIBacklightPanel::doUpdate( void )
         result = true;
 	}
 
-    DbgLog("Leaving %s::%s()\n", this->getName(),__FUNCTION__);
+    //DbgLog("Leaving %s::%s()\n", this->getName(),__FUNCTION__);
     return result;
 }
 
@@ -403,11 +385,11 @@ OSString * ACPIBacklightPanel::getACPIPath(IOACPIPlatformDevice * acpiDevice)
     bzero(devicePath, lgth);
     IOACPIPlatformDevice * parent = acpiDevice;
     
-    IORegistryIterator * iter = IORegistryIterator::iterateOver(acpiDevice, IOACPIPlane, kIORegistryIterateParents | kIORegistryIterateRecursively);
+    IORegistryIterator * iter = IORegistryIterator::iterateOver(acpiDevice, gIOACPIPlane, kIORegistryIterateParents | kIORegistryIterateRecursively);
     if (iter)
     {
         do {
-            array->setObject(parent->copyName(IOACPIPlane));
+            array->setObject(parent->copyName(gIOACPIPlane));
             array->setObject(separator);
             parent = OSDynamicCast(IOACPIPlatformDevice, iter->getNextObject());
         } while (parent);
@@ -432,7 +414,7 @@ IOACPIPlatformDevice *  ACPIBacklightPanel::getGPU()
 {
     DbgLog("%s::%s()\n", this->getName(),__FUNCTION__);
     
-    IORegistryIterator * iter = IORegistryIterator::iterateOver( IOACPIPlane, kIORegistryIterateRecursively);
+    IORegistryIterator * iter = IORegistryIterator::iterateOver(gIOACPIPlane, kIORegistryIterateRecursively);
     IOACPIPlatformDevice * look = NULL, * ret = NULL;
     IORegistryEntry * entry;
     
@@ -517,7 +499,7 @@ IOACPIPlatformDevice * ACPIBacklightPanel::getChildWithBacklightMethods(IOACPIPl
 	OSIterator * 		iter = NULL;
 	OSObject *		entry;
     
-	iter =  GPUdevice->getChildIterator(IOACPIPlane);
+	iter =  GPUdevice->getChildIterator(gIOACPIPlane);
 	if (iter)
 	{
 		while ( true )
@@ -612,10 +594,9 @@ void ACPIBacklightPanel::saveACPIBrightnessLevelNVRAM(UInt32 level1)
     DbgLog("%s::%s(): level=%d\n", this->getName(),__FUNCTION__, level1);
 
     UInt16 level = (UInt16)level1;
-
     if (IORegistryEntry *nvram = OSDynamicCast(IORegistryEntry, fromPath("/options", gIODTPlane)))
     {
-        if (const OSSymbol* symbol = OSSymbol::withCString("acpi-backlight-level"))
+        if (const OSSymbol* symbol = OSSymbol::withCString(kACPIBacklightLevel))
         {
             if (OSData* number = OSData::withBytes(&level, sizeof(level)))
             {
@@ -647,7 +628,7 @@ UInt32 ACPIBacklightPanel::loadFromNVRAM(void)
     UInt32 val = -1;
     if (nvram)
     {
-        if (OSData* number = OSDynamicCast(OSData, nvram->getProperty("acpi-backlight-level")))
+        if (OSData* number = OSDynamicCast(OSData, nvram->getProperty(kACPIBacklightLevel)))
         {
             val = 0;
             unsigned l = number->getLength();
@@ -666,7 +647,7 @@ UInt32 ACPIBacklightPanel::queryACPICurentBrightnessLevel()
 {
     DbgLog("%s::%s()\n", this->getName(),__FUNCTION__);
     
-	UInt32 level;
+	UInt32 level = minAC;
 	if (kIOReturnSuccess == backLightDevice->evaluateInteger("_BQC", &level))
 	{
 		DbgLog("%s: queryACPICurentBrightnessLevel _BQC = %d\n", this->getName(), (int) level );
@@ -683,14 +664,13 @@ UInt32 ACPIBacklightPanel::queryACPICurentBrightnessLevel()
                 levels->release();
             }
         }
-        DbgLog("%s: queryACPICurentBrightnessLevel returning %d\n", this->getName(), (int) level );
-		return level;
+        DbgLog("%s: queryACPICurentBrightnessLevel returning %d\n", this->getName(), level);
 	}
 	else {
 		IOLog("%s: Error in queryACPICurentBrightnessLevel _BQC\n", this->getName());
 	}
     //some laptops didn't return anything on startup, return then max value (first entry in _BCL):
-	return minAC;
+	return level;
 }
 
 
@@ -716,7 +696,7 @@ void ACPIBacklightPanel::getDeviceControl()
 }
 
 
-SInt32 ACPIBacklightPanel::getIndexForLevel(SInt32 BCLvalue)
+SInt32 ACPIBacklightPanel::findIndexForLevel(SInt32 BCLvalue)
 {
 	for (SInt32 i = BCLlevelsCount-1; i>=0 ; i--)
 	{
@@ -778,10 +758,10 @@ SInt32 ACPIBacklightPanel::setupIndexedLevels()
 		
 		//2 first items are min on ac and max on bat
 		num = OSDynamicCast(OSNumber, levels->getObject(0));
-		minAC = getIndexForLevel(num->unsigned32BitValue());
+		minAC = findIndexForLevel(num->unsigned32BitValue());
 		setDebugProperty("BCL: Min on AC", num);
 		num = OSDynamicCast(OSNumber, levels->getObject(1));
-		maxBat = getIndexForLevel(num->unsigned32BitValue());
+		maxBat = findIndexForLevel(num->unsigned32BitValue());
 		setDebugProperty("BCL: Max on Bat", num);
 		setProperty("Brightness Control Levels", levels);
 		
@@ -852,7 +832,7 @@ bool ACPIBacklightPanel::getACStatus()
 
 void ACPIBacklightPanel::processWorkQueue(IOInterruptEventSource *, int)
 {
-   saveACPIBrightnessLevelNVRAM(BCLlevels[_index]);
+   saveACPIBrightnessLevelNVRAM(_value);
 }
 
 void ACPIBacklightPanel::onSmoothTimer()

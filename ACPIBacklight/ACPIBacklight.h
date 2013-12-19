@@ -57,7 +57,6 @@ private:
     IOInterruptEventSource* _workSource;
     IOTimerEventSource* _smoothTimer;
     
-    const IORegistryPlane * IOACPIPlane;
     bool findDevices(IOService * provider);
     IOACPIPlatformDevice *  getGPU();
     //IOACPIPlatformDevice *  getGPUACPIDevice(IOService *provider);
@@ -75,13 +74,12 @@ private:
 	UInt32 queryACPICurentBrightnessLevel();
 	
 	SInt32 setupIndexedLevels();
-	SInt32 getIndexForLevel(SInt32 BCLvalue);
+	SInt32 findIndexForLevel(SInt32 BCLvalue);
 	SInt32 * BCLlevels;
 	UInt32 BCLlevelsCount;
 	UInt32 minAC, maxBat, min, max;
 	bool hasSaveMethod;
     UInt32 _value;  // osx value
-    UInt32 _index;  // driver index into BCLLevels
     
 	void getDeviceControl();
     
@@ -92,5 +90,7 @@ private:
     void  onSmoothTimer(void);
     void saveACPIBrightnessLevelNVRAM(UInt32 level);
     UInt32 loadFromNVRAM(void);
+    UInt32 indexForLevel(UInt32 value);
+    UInt32 levelForIndex(UInt32 level);
 };
 #endif

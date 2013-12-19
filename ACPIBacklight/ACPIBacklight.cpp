@@ -628,16 +628,26 @@ UInt32 ACPIBacklightPanel::loadFromNVRAM(void)
     UInt32 val = -1;
     if (nvram)
     {
-        if (OSData* number = OSDynamicCast(OSData, nvram->getProperty(kACPIBacklightLevel)))
+        // need to serialize as getProperty on nvram does not work
+        if (OSSerialize* serial = OSSerialize::withCapacity(0))
         {
-            val = 0;
-            unsigned l = number->getLength();
-            if (l <= sizeof(val))
-                memcpy(&val, number->getBytesNoCopy(), l);
-            DbgLog("read level from nvram = %d\n", val);
-            //number->release();
+            nvram->serializeProperties(serial);
+            if (OSDictionary* props = OSDynamicCast(OSDictionary, OSUnserializeXML(serial->text())))
+            {
+                if (OSData* number = OSDynamicCast(OSData, props->getObject(kACPIBacklightLevel)))
+                {
+                    val = 0;
+                    unsigned l = number->getLength();
+                    if (l <= sizeof(val))
+                        memcpy(&val, number->getBytesNoCopy(), l);
+                    DbgLog("read level from nvram = %d\n", val);
+                    //number->release();
+                }
+                else DbgLog("no acpi-backlight-level in nvram\n");
+                props->release();
+            }
+            serial->release();
         }
-        else DbgLog("no acpi-backlight-level in nvram\n");
         nvram->release();
     }
     return val;

@@ -28,7 +28,7 @@
 OSDefineMetaClassAndStructors(ACPIBacklightPanel, IODisplayParameterHandler)
 
 #define kACPIBacklightLevel "acpi-backlight-level"
-
+#define kRawBrightness "RawBrightness"
 
 #pragma mark -
 #pragma mark IOService functions override
@@ -46,6 +46,8 @@ bool ACPIBacklightPanel::init()
 
     _workSource = NULL;
     _smoothTimer = NULL;
+    _cmdGate = NULL;
+    _extended = false;
 
 	return super::init();
 }
@@ -93,6 +95,8 @@ bool ACPIBacklightPanel::start( IOService * provider )
         DbgLog("ACPIBacklightPanel: no value from nvram, setting value from current\n");
         index = findIndexForLevel(queryACPICurentBrightnessLevel());
         _value = levelForIndex(index);
+        // just FYI... set RawBrightness property to actual current level
+        setProperty(kRawBrightness, queryACPICurentBrightnessLevel(), 32);
     }
 
     // add interrupt source for delayed actions...
@@ -113,6 +117,12 @@ bool ACPIBacklightPanel::start( IOService * provider )
     if (_smoothTimer)
         workLoop->addEventSource(_smoothTimer);
 
+    _cmdGate = IOCommandGate::commandGate(this);
+    if (_cmdGate)
+        workLoop->addEventSource(_cmdGate);
+
+    registerService();
+
     DbgLog("%s: min = %u, max = %u, index = %u, value = %u\n", this->getName(), min, max, index, _value);
 	IOLog("%s: Version 1.2\n", this->getName());
 
@@ -124,18 +134,31 @@ void ACPIBacklightPanel::stop( IOService * provider )
 {
     DbgLog("%s::%s()\n", this->getName(),__FUNCTION__);
 
-    if (_workSource)
+    IOWorkLoop* workLoop = getWorkLoop();
+    if (workLoop)
     {
-        IOWorkLoop* workLoop = getWorkLoop();
-        if (workLoop)
+        if (_workSource)
         {
             workLoop->removeEventSource(_workSource);
             _workSource->release();
             _workSource = NULL;
         }
+        if (_smoothTimer)
+        {
+            workLoop->removeEventSource(_smoothTimer);
+            _smoothTimer->release();
+            _smoothTimer = NULL;
+        }
+        if (_cmdGate)
+        {
+            workLoop->removeEventSource(_cmdGate);
+            _cmdGate->release();
+            _cmdGate = NULL;
+        }
     }
-	
-    return (super::stop(provider));
+    _extended = false;
+
+    return super::stop(provider);
 }
 
 void ACPIBacklightPanel::free()
@@ -450,17 +473,26 @@ bool ACPIBacklightPanel::hasBacklightMethods(IOACPIPlatformDevice * acpiDevice)
 		DbgLog("%s: ACPI device %s has _BCL\n", this->getName(), acpiDevice->getName());
 	else
 		ret = false;
-    
-	if (kIOReturnSuccess == acpiDevice->validateObject("_BCM"))
-		DbgLog("%s: ACPI device %s has _BCM\n", this->getName(), acpiDevice->getName());
-	else
-		ret = false;
-    
-	if (kIOReturnSuccess == acpiDevice->validateObject("_BQC"))
-		DbgLog("%s: ACPI device %s has _BQC\n", this->getName(), acpiDevice->getName());	
-	else
-		ret = false;
-	
+
+    if (kIOReturnSuccess == acpiDevice->validateObject("XBCM") && kIOReturnSuccess == acpiDevice->validateObject("XBQC"))
+    {
+        DbgLog("%s: ACPI device %s has XBCM/XBQC\n", this->getName(), acpiDevice->getName());
+        _extended = true;
+    }
+
+    if (!_extended)
+    {
+        if (kIOReturnSuccess == acpiDevice->validateObject("_BCM"))
+            DbgLog("%s: ACPI device %s has _BCM\n", this->getName(), acpiDevice->getName());
+        else
+            ret = false;
+        
+        if (kIOReturnSuccess == acpiDevice->validateObject("_BQC"))
+            DbgLog("%s: ACPI device %s has _BQC\n", this->getName(), acpiDevice->getName());	
+        else
+            ret = false;
+    }
+
 	return ret;
 }
 
@@ -541,10 +573,11 @@ OSArray * ACPIBacklightPanel::queryACPISupportedBrightnessLevels()
 		DbgLog("%s: %s _BCL %d\n", this->getName(), backLightDevice->getName(), data->getCount() );
 		return data;
 	}
-	else {
+	else
+    {
 		DbgLog("%s: Cast Error _BCL is %s\n", this->getName(), ret->getMetaClass()->getClassName());
 	}
-	ret->release();
+	OSSafeRelease(ret);
 	return NULL;
 }
 
@@ -555,16 +588,20 @@ void ACPIBacklightPanel::setACPIBrightnessLevel(UInt32 level)
     
 	OSObject * ret = NULL;
 	OSNumber * number = OSNumber::withNumber(level, 32);
-    
-	if (kIOReturnSuccess == backLightDevice->evaluateObject("_BCM", &ret, (OSObject**)&number,1))
+    const char* method = _extended ? "XBCM" : "_BCM";
+
+	if (number && kIOReturnSuccess == backLightDevice->evaluateObject(method, &ret, (OSObject**)&number, 1))
     {
-        if (ret)
-            ret->release();
+        OSSafeRelease(ret);
+        number->release();
         
-        DbgLog("%s: setACPIBrightnessLevel _BCM(%u)\n", this->getName(), (unsigned int) level);
+        DbgLog("%s: setACPIBrightnessLevel %s(%u)\n", this->getName(), method, level);
+
+        // just FYI... set RawBrightness property to actual current level
+        setProperty(kRawBrightness, level, 32);
     }
     else
-        IOLog("%s: Error in setACPIBrightnessLevel _BCM(%u)\n", this->getName(), (unsigned int) level);
+        IOLog("%s: Error in setACPIBrightnessLevel %s(%u)\n", this->getName(), method, level);
 }
 
 
@@ -575,11 +612,11 @@ void ACPIBacklightPanel::saveACPIBrightnessLevel(UInt32 level)
 	OSObject * ret = NULL;
 	OSNumber * number = OSNumber::withNumber(level, 32);
     
-	if (kIOReturnSuccess == backLightDevice->evaluateObject("SAVE", &ret, (OSObject**)&number,1))
+	if (number && kIOReturnSuccess == backLightDevice->evaluateObject("SAVE", &ret, (OSObject**)&number,1))
     {
-        if (ret)
-            ret->release();
-        
+        OSSafeRelease(ret);
+        number->release();
+
         DbgLog("%s: saveACPIBrightnessLevel SAVE(%u)\n", this->getName(), (unsigned int) level);
     }
     else
@@ -658,9 +695,10 @@ UInt32 ACPIBacklightPanel::queryACPICurentBrightnessLevel()
     DbgLog("%s::%s()\n", this->getName(),__FUNCTION__);
     
 	UInt32 level = minAC;
-	if (kIOReturnSuccess == backLightDevice->evaluateInteger("_BQC", &level))
+    const char* method = _extended ? "XBQC" : "_BQC";
+	if (kIOReturnSuccess == backLightDevice->evaluateInteger(method, &level))
 	{
-		DbgLog("%s: queryACPICurentBrightnessLevel _BQC = %d\n", this->getName(), (int) level );
+		DbgLog("%s: queryACPICurentBrightnessLevel %s = %d\n", this->getName(), method, level);
         
         OSBoolean * useIdx = OSDynamicCast(OSBoolean, getProperty("BQC use index"));
         if (useIdx && useIdx->isTrue())
@@ -677,7 +715,7 @@ UInt32 ACPIBacklightPanel::queryACPICurentBrightnessLevel()
         DbgLog("%s: queryACPICurentBrightnessLevel returning %d\n", this->getName(), level);
 	}
 	else {
-		IOLog("%s: Error in queryACPICurentBrightnessLevel _BQC\n", this->getName());
+		IOLog("%s: Error in queryACPICurentBrightnessLevel %s\n", this->getName(), method);
 	}
     //some laptops didn't return anything on startup, return then max value (first entry in _BCL):
 	return level;
@@ -694,11 +732,11 @@ void ACPIBacklightPanel::getDeviceControl()
 	OSNumber * number = OSNumber::withNumber(0x4, 32); //bit 2 = 1
 	OSObject * ret = NULL;
 	
-	if (kIOReturnSuccess == gpuDevice->evaluateObject("_DOS", &ret, (OSObject**)&number,1))
+	if (number && kIOReturnSuccess == gpuDevice->evaluateObject("_DOS", &ret, (OSObject**)&number, 1))
     {
-        if (ret)
-            ret->release();
-        
+        OSSafeRelease(ret);
+        number->release();
+
         DbgLog("%s: BIOS control disabled: _DOS\n", this->getName());
     }
     else
@@ -774,6 +812,7 @@ SInt32 ACPIBacklightPanel::setupIndexedLevels()
 		maxBat = findIndexForLevel(num->unsigned32BitValue());
 		setDebugProperty("BCL: Max on Bat", num);
 		setProperty("Brightness Control Levels", levels);
+        levels->release();
 		
 		return BCLlevelsCount -1;
 	}
@@ -850,3 +889,30 @@ void ACPIBacklightPanel::onSmoothTimer()
     //TODO: gradually fade in new brightness
 }
 
+IOReturn ACPIBacklightPanel::setPropertiesGated(OSObject* props)
+{
+    OSDictionary* dict = OSDynamicCast(OSDictionary, props);
+    if (!dict)
+        return kIOReturnSuccess;
+
+    // set brightness
+	if (OSNumber* num = OSDynamicCast(OSNumber, dict->getObject(kRawBrightness)))
+    {
+		UInt32 raw = (int)num->unsigned32BitValue();
+        setACPIBrightnessLevel(raw);
+        setProperty(kRawBrightness, raw, 32);
+    }
+    return kIOReturnSuccess;
+}
+
+IOReturn ACPIBacklightPanel::setProperties(OSObject* props)
+{
+    if (_cmdGate)
+    {
+        // syncronize through workloop...
+        IOReturn result = _cmdGate->runAction(OSMemberFunctionCast(IOCommandGate::Action, this, &ACPIBacklightPanel::setPropertiesGated), props);
+        if (kIOReturnSuccess != result)
+            return result;
+    }
+    return kIOReturnSuccess;
+}

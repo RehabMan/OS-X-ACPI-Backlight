@@ -57,6 +57,8 @@
 					<integer>0</integer>
 				</dict>
 			</dict>
+			<key>RawBrightness</key>
+			<integer>0</integer>
 		</dict>
 	</dict>
 	<key>OSBundleLibraries</key>

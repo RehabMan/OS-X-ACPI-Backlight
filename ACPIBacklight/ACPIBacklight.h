@@ -27,6 +27,7 @@
 #include <IOKit/graphics/IODisplay.h>
 #include <IOKit/acpi/IOACPIPlatformDevice.h>
 #include <IOKit/IOTimerEventSource.h>
+#include <IOKit/IOCommandGate.h>
 
 
 class ACPIBacklightPanel : public IODisplayParameterHandler
@@ -40,6 +41,7 @@ public:
 	virtual bool start( IOService * provider );
     virtual void stop( IOService * provider );
     virtual void free();
+    virtual IOReturn setProperties(OSObject* props);
 
     //IODisplayParameterHandler
     virtual bool setDisplay( IODisplay * display );
@@ -56,7 +58,9 @@ private:
 
     IOInterruptEventSource* _workSource;
     IOTimerEventSource* _smoothTimer;
-    
+    IOCommandGate* _cmdGate;
+    bool _extended;
+
     bool findDevices(IOService * provider);
     IOACPIPlatformDevice *  getGPU();
     //IOACPIPlatformDevice *  getGPUACPIDevice(IOService *provider);
@@ -92,5 +96,7 @@ private:
     UInt32 loadFromNVRAM(void);
     UInt32 indexForLevel(UInt32 value);
     UInt32 levelForIndex(UInt32 level);
+
+    IOReturn setPropertiesGated(OSObject* props);
 };
 #endif

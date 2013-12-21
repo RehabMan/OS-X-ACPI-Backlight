@@ -28,6 +28,8 @@
 #include <IOKit/acpi/IOACPIPlatformDevice.h>
 #include <IOKit/IOTimerEventSource.h>
 #include <IOKit/IOCommandGate.h>
+#include <IOKit/IOInterruptEventSource.h>
+#include <IOKit/IOLocks.h>
 
 
 class ACPIBacklightPanel : public IODisplayParameterHandler
@@ -59,7 +61,9 @@ private:
     IOInterruptEventSource* _workSource;
     IOTimerEventSource* _smoothTimer;
     IOCommandGate* _cmdGate;
+    IORecursiveLock* _lock;
     bool _extended;
+    int _smoothIndex;
 
     bool findDevices(IOService * provider);
     IOACPIPlatformDevice *  getGPU();
@@ -77,6 +81,7 @@ private:
     void saveACPIBrightnessLevel(UInt32 level);
 	UInt32 queryACPICurentBrightnessLevel();
     void setBrightnessLevel(UInt32 level);
+    void setBrightnessLevelSmooth(UInt32 level);
 	
 	SInt32 setupIndexedLevels();
 	SInt32 findIndexForLevel(SInt32 BCLvalue);
@@ -84,7 +89,8 @@ private:
 	UInt32 BCLlevelsCount;
 	UInt32 minAC, maxBat, min, max;
 	bool hasSaveMethod;
-    UInt32 _value;  // osx value
+    int _value;  // osx value
+    int _from_value; // current value working towards _value
     
 	void getDeviceControl();
     

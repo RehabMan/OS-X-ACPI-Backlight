@@ -6,17 +6,15 @@
 #define ACPIBacklightDisplay_Debug_h
 
 #if defined(DEBUG)
-#define DbgLog(arg...)	IOLog(arg)
+#define DbgLog(arg...) do { IOLog(arg); } while (0)
 #else
-#define DbgLog(arg...)
+#define DbgLog(arg...) do { } while (0)
 #endif
 
 #if defined(DEBUG)
-#define setDebugProperty(arg...)	setProperty(arg)
+#define setDebugProperty(arg...) do { setProperty(arg); } while (0)
 #else
-#define setDebugProperty(arg...)
+#define setDebugProperty(arg...) do { } while (0)
 #endif
-
-
 
 #endif

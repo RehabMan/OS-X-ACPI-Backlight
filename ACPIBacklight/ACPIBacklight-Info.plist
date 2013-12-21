@@ -17,11 +17,11 @@
 	<key>CFBundlePackageType</key>
 	<string>KEXT</string>
 	<key>CFBundleShortVersionString</key>
-	<string>1.2</string>
+	<string>2.0</string>
 	<key>CFBundleSignature</key>
 	<string>????</string>
 	<key>CFBundleVersion</key>
-	<string>1.2</string>
+	<string>2.0</string>
 	<key>IOKitPersonalities</key>
 	<dict>
 		<key>ACPIBacklight</key>
@@ -38,8 +38,6 @@
 			<integer>3000</integer>
 			<key>IOProviderClass</key>
 			<string>IOACPIPlatformDevice</string>
-			<key>Show Device Paths</key>
-			<true/>
 			<key>BQC use index</key>
 			<false/>
 			<key>IODisplayParameters</key>
@@ -57,8 +55,6 @@
 					<integer>0</integer>
 				</dict>
 			</dict>
-			<key>RawBrightness</key>
-			<integer>0</integer>
 		</dict>
 	</dict>
 	<key>OSBundleLibraries</key>

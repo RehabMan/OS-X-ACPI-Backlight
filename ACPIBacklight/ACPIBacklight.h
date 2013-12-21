@@ -31,8 +31,10 @@
 #include <IOKit/IOInterruptEventSource.h>
 #include <IOKit/IOLocks.h>
 
+#define EXPORT __attribute__((visibility("default")))
+#define PRIVATE __attribute__((visibility("hidden")))
 
-class ACPIBacklightPanel : public IODisplayParameterHandler
+class EXPORT ACPIBacklightPanel : public IODisplayParameterHandler
 {
     OSDeclareDefaultStructors(ACPIBacklightPanel)
 
@@ -65,26 +67,27 @@ private:
     bool _extended;
     int _smoothIndex;
 
-    bool findDevices(IOService * provider);
-    IOACPIPlatformDevice *  getGPU();
+    PRIVATE bool findDevices(IOService * provider);
+    PRIVATE IOACPIPlatformDevice *  getGPU();
     //IOACPIPlatformDevice *  getGPUACPIDevice(IOService *provider);
-	bool hasBacklightMethods(IOACPIPlatformDevice * acpiDevice);
-    bool hasDOSMethod(IOACPIPlatformDevice * acpiDevice);
-    bool hasSAVEMethod(IOACPIPlatformDevice * acpiDevice);
+	PRIVATE bool hasBacklightMethods(IOACPIPlatformDevice * acpiDevice);
+    PRIVATE bool hasDOSMethod(IOACPIPlatformDevice * acpiDevice);
+    PRIVATE bool hasSAVEMethod(IOACPIPlatformDevice * acpiDevice);
     
-	IOACPIPlatformDevice * getChildWithBacklightMethods(IOACPIPlatformDevice * GPUdevice);
+	PRIVATE IOACPIPlatformDevice * getChildWithBacklightMethods(IOACPIPlatformDevice * GPUdevice);
     
-    OSString * getACPIPath(IOACPIPlatformDevice * acpiDevice);
+    PRIVATE OSString * getACPIPath(IOACPIPlatformDevice * acpiDevice);
     
-	OSArray * queryACPISupportedBrightnessLevels();
-	void setACPIBrightnessLevel(UInt32 level);
-    void saveACPIBrightnessLevel(UInt32 level);
-	UInt32 queryACPICurentBrightnessLevel();
-    void setBrightnessLevel(UInt32 level);
-    void setBrightnessLevelSmooth(UInt32 level);
+	PRIVATE OSArray * queryACPISupportedBrightnessLevels();
+	PRIVATE void setACPIBrightnessLevel(UInt32 level);
+    PRIVATE void saveACPIBrightnessLevel(UInt32 level);
+	PRIVATE UInt32 queryACPICurentBrightnessLevel();
+    PRIVATE void setBrightnessLevel(UInt32 level);
+    PRIVATE void setBrightnessLevelSmooth(UInt32 level);
 	
-	SInt32 setupIndexedLevels();
-	SInt32 findIndexForLevel(SInt32 BCLvalue);
+	PRIVATE SInt32 setupIndexedLevels();
+	PRIVATE SInt32 findIndexForLevel(SInt32 BCLvalue);
+    
 	SInt32 * BCLlevels;
 	UInt32 BCLlevelsCount;
 	UInt32 minAC, maxBat, min, max;
@@ -92,18 +95,19 @@ private:
     int _value;  // osx value
     int _from_value; // current value working towards _value
     
-	void getDeviceControl();
+	PRIVATE void getDeviceControl();
     
-	IOService * getBatteryDevice();
-	bool getACStatus();
+	PRIVATE IOService * getBatteryDevice();
+	PRIVATE bool getACStatus();
 
-    void  processWorkQueue(IOInterruptEventSource *, int);
-    void  onSmoothTimer(void);
-    void saveACPIBrightnessLevelNVRAM(UInt32 level);
-    UInt32 loadFromNVRAM(void);
-    UInt32 indexForLevel(UInt32 value, UInt32* rem = NULL);
-    UInt32 levelForIndex(UInt32 level);
+    PRIVATE void  processWorkQueue(IOInterruptEventSource *, int);
+    PRIVATE void  onSmoothTimer(void);
+    PRIVATE void saveACPIBrightnessLevelNVRAM(UInt32 level);
+    PRIVATE UInt32 loadFromNVRAM(void);
+    PRIVATE UInt32 indexForLevel(UInt32 value, UInt32* rem = NULL);
+    PRIVATE UInt32 levelForIndex(UInt32 level);
 
-    IOReturn setPropertiesGated(OSObject* props);
+    PRIVATE IOReturn setPropertiesGated(OSObject* props);
 };
-#endif
+
+#endif //ACPIBacklightDisplay_ACPIBacklightDevice_h

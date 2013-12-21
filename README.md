@@ -8,9 +8,7 @@ Install the kext using your favorite kext installer utility, such as Kext Wizard
 
 ### Downloads:
 
-Downloads are available on Google Code:
-
-https://code.google.com/p/os-x-acpi-backlight/downloads/list
+Downloads are available somewhere TBD...
 
 
 ### Build Environment

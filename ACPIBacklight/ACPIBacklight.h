@@ -76,6 +76,7 @@ private:
 	void setACPIBrightnessLevel(UInt32 level);
     void saveACPIBrightnessLevel(UInt32 level);
 	UInt32 queryACPICurentBrightnessLevel();
+    void setBrightnessLevel(UInt32 level);
 	
 	SInt32 setupIndexedLevels();
 	SInt32 findIndexForLevel(SInt32 BCLvalue);
@@ -94,7 +95,7 @@ private:
     void  onSmoothTimer(void);
     void saveACPIBrightnessLevelNVRAM(UInt32 level);
     UInt32 loadFromNVRAM(void);
-    UInt32 indexForLevel(UInt32 value);
+    UInt32 indexForLevel(UInt32 value, UInt32* rem = NULL);
     UInt32 levelForIndex(UInt32 level);
 
     IOReturn setPropertiesGated(OSObject* props);

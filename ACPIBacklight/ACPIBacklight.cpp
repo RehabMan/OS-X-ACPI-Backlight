@@ -30,6 +30,9 @@ OSDefineMetaClassAndStructors(ACPIBacklightPanel, IODisplayParameterHandler)
 #define kACPIBacklightLevel "acpi-backlight-level"
 #define kRawBrightness "RawBrightness"
 
+#define kBacklightLevelMin  0
+#define kBacklightLevelMax  0x400
+
 #pragma mark -
 #pragma mark IOService functions override
 #pragma mark -
@@ -87,8 +90,7 @@ bool ACPIBacklightPanel::start( IOService * provider )
     {
         DbgLog("ACPIBacklightPanel: setting to value from nvram %d\n", value);
         _value = value;
-        index = indexForLevel(value);
-        setACPIBrightnessLevel(BCLlevels[index]);
+        setBrightnessLevel(_value);
     }
     else
     {
@@ -198,15 +200,18 @@ void ACPIBacklightPanel::free()
 #pragma mark IODisplayParameterHandler functions override
 #pragma mark -
 
-UInt32 ACPIBacklightPanel::indexForLevel(UInt32 value)
+UInt32 ACPIBacklightPanel::indexForLevel(UInt32 value, UInt32* rem)
 {
-    UInt32 index = value * (max-min) / 0x400 + min;
+    UInt32 index = value * (max-min);
+    if (rem)
+        *rem = index % kBacklightLevelMax;
+    index = index / kBacklightLevelMax + min;
     return index;
 }
 
 UInt32 ACPIBacklightPanel::levelForIndex(UInt32 index)
 {
-    UInt32 value = ((index-min) * 0x400 + (max-min)/2) / (max-min);
+    UInt32 value = ((index-min) * kBacklightLevelMax + (max-min)/2) / (max-min);
     return value;
 }
 
@@ -223,7 +228,7 @@ bool ACPIBacklightPanel::setDisplay( IODisplay * display )
     if (_display)
     {
         doUpdate();
-        setACPIBrightnessLevel(BCLlevels[indexForLevel(_value)]);
+        setBrightnessLevel(_value);
     }
     return true;
 }
@@ -234,10 +239,9 @@ bool ACPIBacklightPanel::doIntegerSet( OSDictionary * params, const OSSymbol * p
     //DbgLog("ACPIBacklight: doIntegerSet(\"%s\", %d)\n", paramName->getCStringNoCopy(), value);
     if ( gIODisplayBrightnessKey->isEqualTo(paramName))
     {   
-        UInt32 index = indexForLevel(value);
-        DbgLog("%s::%s(%s) map %d -> %d\n", this->getName(),__FUNCTION__, paramName->getCStringNoCopy(), value, index);
+        DbgLog("%s::%s(%s) map %d -> %d\n", this->getName(),__FUNCTION__, paramName->getCStringNoCopy(), value, indexForLevel(value));
         _value = value;
-        setACPIBrightnessLevel(BCLlevels[index]);
+        setBrightnessLevel(_value);
         // save to NVRAM in work loop
         _workSource->interruptOccurred(0, 0, 0);
         return true;
@@ -284,7 +288,7 @@ bool ACPIBacklightPanel::doUpdate( void )
 	{				
 		DbgLog("%s: ACPILevel min %d, max %d, value %d\n", this->getName(), min, max, _value);
 		
-        IODisplay::addParameter(backlightParams, gIODisplayBrightnessKey, 0x000, 0x400);
+        IODisplay::addParameter(backlightParams, gIODisplayBrightnessKey, kBacklightLevelMin, kBacklightLevelMax);
         IODisplay::setParameter(backlightParams, gIODisplayBrightnessKey, _value);
 
         ////IODisplay::addParameter(linearParams, gIODisplayLinearBrightnessKey, 0, 0x710);
@@ -598,12 +602,34 @@ void ACPIBacklightPanel::setACPIBrightnessLevel(UInt32 level)
         DbgLog("%s: setACPIBrightnessLevel %s(%u)\n", this->getName(), method, level);
 
         // just FYI... set RawBrightness property to actual current level
-        setProperty(kRawBrightness, level, 32);
+        setProperty(kRawBrightness, queryACPICurentBrightnessLevel(), 32);
     }
     else
         IOLog("%s: Error in setACPIBrightnessLevel %s(%u)\n", this->getName(), method, level);
 }
 
+void ACPIBacklightPanel::setBrightnessLevel(UInt32 level)
+{
+    DbgLog("%s::%s()\n", this->getName(),__FUNCTION__);
+
+    UInt32 rem;
+    UInt32 index = indexForLevel(level, &rem);
+    UInt32 value = BCLlevels[index];
+    DbgLog("ACPIBack: level=%d, index=%d, value=%d\n", level, index, value);
+    if (_extended)
+    {
+        // can set "in between" level
+        UInt32 next = index+1;
+        if (next < BCLlevelsCount)
+        {
+            // prorate the difference...
+            UInt32 diff = BCLlevels[next] - value;
+            value += (diff * rem) / kBacklightLevelMax;
+            DbgLog("ACPIBack: diff=%d, rem=%d, value=%d\n", diff, rem, value);
+        }
+    }
+    setACPIBrightnessLevel(value);
+}
 
 void ACPIBacklightPanel::saveACPIBrightnessLevel(UInt32 level)
 {
@@ -900,7 +926,7 @@ IOReturn ACPIBacklightPanel::setPropertiesGated(OSObject* props)
     {
 		UInt32 raw = (int)num->unsigned32BitValue();
         setACPIBrightnessLevel(raw);
-        setProperty(kRawBrightness, raw, 32);
+        setProperty(kRawBrightness, queryACPICurentBrightnessLevel(), 32);
     }
     return kIOReturnSuccess;
 }

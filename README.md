@@ -54,6 +54,8 @@ https://code.google.com/p/os-x-acpi-backlight/
 
 https://github.com/RehabMan/OS-X-ACPI-Backlight
 
+https://bitbucket.org/RehabMan/os-x-acpi-backlight
+
 
 
 ### Feedback:

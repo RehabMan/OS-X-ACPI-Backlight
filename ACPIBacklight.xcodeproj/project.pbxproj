@@ -286,7 +286,6 @@
 				MODULE_VERSION = 2.0.0d1;
 				ONLY_ACTIVE_ARCH = NO;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = macosx;
 			};
 			name = Debug;
 		};
@@ -302,7 +301,6 @@
 				MODULE_NAME = com.darwin.driver.ACPIBacklight;
 				MODULE_VERSION = 2.0.0d1;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = macosx;
 			};
 			name = Release;
 		};

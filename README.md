@@ -8,9 +8,9 @@ Install the kext using your favorite kext installer utility, such as Kext Wizard
 
 ### Downloads:
 
-Downloads are available on Google Code:
+Downloads are available on bitbucket:
 
-https://code.google.com/p/os-x-acpi-backlight/downloads/list
+https://bitbucket.org/RehabMan/os-x-acpi-backlight/downloads
 
 
 ### Build Environment
@@ -53,6 +53,8 @@ The source code is maintained at the following sites:
 https://code.google.com/p/os-x-acpi-backlight/
 
 https://github.com/RehabMan/OS-X-ACPI-Backlight
+
+https://bitbucket.org/RehabMan/os-x-acpi-backlight
 
 
 

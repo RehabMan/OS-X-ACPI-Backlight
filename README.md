@@ -3,7 +3,7 @@
 
 ### How to Install:
 
-Install the kext using your favorite kext installer utility, such as Kext Wizard.  The Debug director is for troubleshooting only, in normal "working" installs, you should install the Release version.
+Install the kext using your favorite kext installer utility, such as Kext Wizard.  The Debug directory is for troubleshooting only, in normal "working" installs, you should install the Release version.
 
 
 ### Downloads:

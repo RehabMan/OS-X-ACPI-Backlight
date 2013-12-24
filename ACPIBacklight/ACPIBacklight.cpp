@@ -312,8 +312,6 @@ bool ACPIBacklightPanel::doIntegerSet( OSDictionary * params, const OSSymbol * p
     {   
         //DbgLog("%s::%s(%s) map %d -> %d\n", this->getName(),__FUNCTION__, paramName->getCStringNoCopy(), value, indexForLevel(value));
         setBrightnessLevelSmooth(value);
-        // save to NVRAM in work loop
-        _workSource->interruptOccurred(0, 0, 0);
         return true;
     }
     else if (gIODisplayParametersCommitKey->isEqualTo(paramName))
@@ -321,9 +319,11 @@ bool ACPIBacklightPanel::doIntegerSet( OSDictionary * params, const OSSymbol * p
         UInt32 index = indexForLevel(_value);
         //DbgLog("%s::%s(%s) map %d -> %d\n", this->getName(),__FUNCTION__, paramName->getCStringNoCopy(), value, index);
         IODisplay::setParameter(params, gIODisplayBrightnessKey, _value);
+        _committed_value = _value;
+        // save to NVRAM in work loop
+        _workSource->interruptOccurred(0, 0, 0);
         if (hasSaveMethod)
             saveACPIBrightnessLevel(BCLlevels[index]);
-        _committed_value = _value;
         return true;
     }
     return false;
@@ -1048,7 +1048,7 @@ void ACPIBacklightPanel::processWorkQueue(IOInterruptEventSource *, int)
 {
     //DbgLog("%s::%s()\n", this->getName(),__FUNCTION__);
 
-    saveACPIBrightnessLevelNVRAM(_value);
+    saveACPIBrightnessLevelNVRAM(_committed_value);
 }
 
 IOReturn ACPIBacklightPanel::setPropertiesGated(OSObject* props)

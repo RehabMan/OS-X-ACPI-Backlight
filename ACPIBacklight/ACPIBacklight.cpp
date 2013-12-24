@@ -152,6 +152,20 @@ bool ACPIBacklightPanel::start( IOService * provider )
     }
     setProperty(kRawBrightness, queryACPICurentBrightnessLevel(), 32);
 
+
+    // load and set default brightness level
+    UInt32 value = loadFromNVRAM();
+    DbgLog("%s: loadFromNVRAM returns %d\n", this->getName(), value);
+    UInt32 current = queryACPICurentBrightnessLevel();
+    _committed_value = _value = _from_value = levelForValue(current);
+    DbgLog("%s: current brightness: %d (%d)\n", this->getName(), _from_value, current);
+    if (-1 != value)
+    {
+        _committed_value = value;
+        DbgLog("%s: setting to value from nvram %d\n", this->getName(), value);
+        setBrightnessLevelSmooth(value);
+    }
+
     // make the service available for clients like 'ioio'...
     registerService();
 
@@ -251,6 +265,23 @@ UInt32 ACPIBacklightPanel::levelForIndex(UInt32 index)
     return value;
 }
 
+UInt32 ACPIBacklightPanel::levelForValue(UInt32 value)
+{
+    // return approx. OS X level for ACPI value
+    UInt32 index = findIndexForLevel(value);
+    UInt32 level = levelForIndex(index);
+    if (index < BCLlevelsCount-1)
+    {
+        // pro-rate between levels
+        int diff = levelForIndex(index+1) - level;
+        // now pro-rate diff for value as between BCLLevels[index] and BCLLevels[index+1]
+        diff *= value - BCLlevels[index];
+        diff /= BCLlevels[index+1] - BCLlevels[index];
+        level += diff;
+    }
+    return level;
+}
+
 bool ACPIBacklightPanel::setDisplay( IODisplay * display )
 {    
     DbgLog("%s::%s()\n", this->getName(),__FUNCTION__);
@@ -260,22 +291,15 @@ bool ACPIBacklightPanel::setDisplay( IODisplay * display )
         display->retain();
     OSSafeRelease(_display);
     _display = display;
-    // update brightness levels
     if (_display)
     {
+        // update brightness levels
         doUpdate();
-
-        // load and set default brightness level
-        UInt32 value = loadFromNVRAM();
-        DbgLog("%s: loadFromNVRAM returns %d\n", this->getName(), value);
-        UInt32 current = queryACPICurentBrightnessLevel();
-        UInt32 index = findIndexForLevel(current);
-        _value = _from_value = levelForIndex(index);
-        DbgLog("%s: current brightness: %d (%d,%d)\n", this->getName(), _from_value, current, index);
-        if (-1 != value)
+        // have we committed a value yet?
+        if (_committed_value)
         {
-            DbgLog("%s: setting to value from nvram %d\n", this->getName(), value);
-            setBrightnessLevelSmooth(value);
+            // set to last commit value
+            setBrightnessLevelSmooth(_committed_value);
         }
     }
     return true;
@@ -284,7 +308,7 @@ bool ACPIBacklightPanel::setDisplay( IODisplay * display )
 
 bool ACPIBacklightPanel::doIntegerSet( OSDictionary * params, const OSSymbol * paramName, UInt32 value)
 {
-    //DbgLog("%s::%s(\"%s\", %d)\n", this->getName(), __FUNCTION__, paramName->getCStringNoCopy(), value);
+    DbgLog("%s::%s(\"%s\", %d)\n", this->getName(), __FUNCTION__, paramName->getCStringNoCopy(), value);
     if ( gIODisplayBrightnessKey->isEqualTo(paramName))
     {   
         //DbgLog("%s::%s(%s) map %d -> %d\n", this->getName(),__FUNCTION__, paramName->getCStringNoCopy(), value, indexForLevel(value));
@@ -295,11 +319,12 @@ bool ACPIBacklightPanel::doIntegerSet( OSDictionary * params, const OSSymbol * p
     }
     else if (gIODisplayParametersCommitKey->isEqualTo(paramName))
     {
-        UInt32 index = indexForLevel(value);
+        UInt32 index = indexForLevel(_value);
         //DbgLog("%s::%s(%s) map %d -> %d\n", this->getName(),__FUNCTION__, paramName->getCStringNoCopy(), value, index);
-        IODisplay::setParameter(params, gIODisplayBrightnessKey, value);
+        IODisplay::setParameter(params, gIODisplayBrightnessKey, _value);
         if (hasSaveMethod)
             saveACPIBrightnessLevel(BCLlevels[index]);
+        _committed_value = _value;
         return true;
     }
     return false;
@@ -885,10 +910,12 @@ SInt32 ACPIBacklightPanel::findIndexForLevel(SInt32 BCLvalue)
 	{
 		if (BCLlevels[i] >= BCLvalue)
 		{
-			//DbgLog("%s: findIndexForLevel(%d) is %d\n", this->getName(), (int) BCLvalue, (int) i);
+            i = i > 0 ? i-1 : 0;
+			DbgLog("%s: findIndexForLevel(%d) is %d\n", this->getName(), BCLvalue, i);
 			return i;
 		}
 	}
+    DbgLog("%s: findIndexForLevel(%d) did not find\n", this->getName(), BCLvalue);
 	return BCLlevelsCount-1;
 }
 
@@ -937,7 +964,7 @@ SInt32 ACPIBacklightPanel::setupIndexedLevels()
 				BCLlevels[i] = num->unsigned32BitValue();
 			}
 		}
-		
+
 		//2 first items are min on ac and max on bat
 		num = OSDynamicCast(OSNumber, levels->getObject(0));
 		minAC = findIndexForLevel(num->unsigned32BitValue());

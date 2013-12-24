@@ -94,6 +94,7 @@ private:
 	bool hasSaveMethod;
     int _value;  // osx value
     int _from_value; // current value working towards _value
+    int _committed_value; 
     
 	PRIVATE void getDeviceControl();
     
@@ -106,6 +107,7 @@ private:
     PRIVATE UInt32 loadFromNVRAM(void);
     PRIVATE UInt32 indexForLevel(UInt32 value, UInt32* rem = NULL);
     PRIVATE UInt32 levelForIndex(UInt32 level);
+    PRIVATE UInt32 levelForValue(UInt32 value);
 
     PRIVATE IOReturn setPropertiesGated(OSObject* props);
 };

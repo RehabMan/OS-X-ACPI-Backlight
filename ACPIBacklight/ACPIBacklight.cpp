@@ -169,7 +169,7 @@ bool ACPIBacklightPanel::start( IOService * provider )
     registerService();
 
     DbgLog("%s: min = %u, max = %u\n", this->getName(), min, max);
-	IOLog("ACPIBacklight: Version 2.0\n");
+	IOLog("ACPIBacklight: Version 2.0.1\n");
 
 	return true;
 }

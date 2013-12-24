@@ -152,7 +152,6 @@ bool ACPIBacklightPanel::start( IOService * provider )
     }
     setProperty(kRawBrightness, queryACPICurentBrightnessLevel(), 32);
 
-
     // load and set default brightness level
     UInt32 value = loadFromNVRAM();
     DbgLog("%s: loadFromNVRAM returns %d\n", this->getName(), value);
@@ -724,6 +723,11 @@ void ACPIBacklightPanel::setBrightnessLevelSmooth(UInt32 level)
             _value = level;
             if (start)
                 onSmoothTimer();
+        }
+        else if (_from_value == _value)
+        {
+            // in the case of already set to that value, set it for sure
+            setBrightnessLevel(_value);
         }
 
         IORecursiveLockUnlock(_lock);

@@ -73,6 +73,11 @@ http://www.tonymacx86.com/hp-probook-mavericks/118805-full-range-brightness-usin
 
 ### Change Log:
 
+2013-12-24 v2.0.1
+
+- Bug fixes. See issues at github.
+
+
 2013-12-21 v2.0
 
 - Modified by RehabMan for use with the HP ProBook and custom DSDT patches.

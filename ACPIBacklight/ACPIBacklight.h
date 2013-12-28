@@ -61,6 +61,10 @@ private:
 	OSData * supportedLevels;
 
     IOInterruptEventSource* _workSource;
+    enum { kWorkSave = 0x01, kWorkSetBrightness = 0x02 };
+    unsigned _workPending;
+    PRIVATE void scheduleWork(unsigned newWork);
+    
     IOTimerEventSource* _smoothTimer;
     IOCommandGate* _cmdGate;
     IORecursiveLock* _lock;
@@ -110,6 +114,9 @@ private:
     PRIVATE UInt32 levelForValue(UInt32 value);
 
     PRIVATE IOReturn setPropertiesGated(OSObject* props);
+#ifdef DEBUG
+    PRIVATE void setKLVX(UInt32 levx);
+#endif
 };
 
 #endif //ACPIBacklightDisplay_ACPIBacklightDevice_h

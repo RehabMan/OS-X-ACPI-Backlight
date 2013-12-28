@@ -125,6 +125,7 @@ bool ACPIBacklightPanel::start( IOService * provider )
         return false;
     }
     workLoop->addEventSource(_workSource);
+    _workPending = 0;
 
     // add timer for smooth fade ins
     _smoothTimer = IOTimerEventSource::timerEventSource(this, OSMemberFunctionCast(IOTimerEventSource::Action, this, &ACPIBacklightPanel::onSmoothTimer));
@@ -151,6 +152,11 @@ bool ACPIBacklightPanel::start( IOService * provider )
         setProperty(buf, smoothData[i].timeout, 32);
     }
     setProperty(kRawBrightness, queryACPICurentBrightnessLevel(), 32);
+    
+#ifdef DEBUG
+    setProperty("CycleTest", 1, 32);
+    setProperty("KLVX", 1, 32);
+#endif
 
     // load and set default brightness level
     UInt32 value = loadFromNVRAM();
@@ -292,14 +298,11 @@ bool ACPIBacklightPanel::setDisplay( IODisplay * display )
     _display = display;
     if (_display)
     {
+        // automatically commit a non-zero value on display change
+        if (_value)
+            _committed_value = _value;
         // update brightness levels
         doUpdate();
-        // have we committed a value yet?
-        if (_committed_value)
-        {
-            // set to last commit value
-            setBrightnessLevelSmooth(_committed_value);
-        }
     }
     return true;
 }
@@ -318,10 +321,11 @@ bool ACPIBacklightPanel::doIntegerSet( OSDictionary * params, const OSSymbol * p
     {
         UInt32 index = indexForLevel(_value);
         //DbgLog("%s::%s(%s) map %d -> %d\n", this->getName(),__FUNCTION__, paramName->getCStringNoCopy(), value, index);
-        IODisplay::setParameter(params, gIODisplayBrightnessKey, _value);
         _committed_value = _value;
+        IODisplay::setParameter(params, gIODisplayBrightnessKey, _committed_value);
         // save to NVRAM in work loop
-        _workSource->interruptOccurred(0, 0, 0);
+        scheduleWork(kWorkSave|kWorkSetBrightness);
+        // save to BIOS nvram via ACPI
         if (hasSaveMethod)
             saveACPIBrightnessLevel(BCLlevels[index]);
         return true;
@@ -339,7 +343,7 @@ bool ACPIBacklightPanel::doDataSet( const OSSymbol * paramName, OSData * value )
 
 bool ACPIBacklightPanel::doUpdate( void )
 {
-    //DbgLog("%s::%s()\n", this->getName(),__FUNCTION__);
+    DbgLog("%s::%s()\n", this->getName(),__FUNCTION__);
     bool result = false;
 
     OSDictionary* newDict = 0;
@@ -360,7 +364,7 @@ bool ACPIBacklightPanel::doUpdate( void )
 		//DbgLog("%s: ACPILevel min %d, max %d, value %d\n", this->getName(), min, max, _value);
 		
         IODisplay::addParameter(backlightParams, gIODisplayBrightnessKey, kBacklightLevelMin, kBacklightLevelMax);
-        IODisplay::setParameter(backlightParams, gIODisplayBrightnessKey, _value);
+        IODisplay::setParameter(backlightParams, gIODisplayBrightnessKey, _committed_value);
 
         ////IODisplay::addParameter(linearParams, gIODisplayLinearBrightnessKey, 0, 0x710);
         ////IODisplay::setParameter(linearParams, gIODisplayLinearBrightnessKey, ((_index-min) * 0x710 + (max-min)/2) / (max-min));
@@ -662,7 +666,7 @@ void ACPIBacklightPanel::setACPIBrightnessLevel(UInt32 level)
     {
         OSSafeRelease(ret);
 
-        //DbgLog("%s: setACPIBrightnessLevel %s(%u)\n", this->getName(), method, level);
+        DbgLog("%s: setACPIBrightnessLevel %s(%u)\n", this->getName(), method, level);
 
         // just FYI... set RawBrightness property to actual current level
         setProperty(kRawBrightness, queryACPICurentBrightnessLevel(), 32);
@@ -674,7 +678,7 @@ void ACPIBacklightPanel::setACPIBrightnessLevel(UInt32 level)
 
 void ACPIBacklightPanel::setBrightnessLevel(UInt32 level)
 {
-    DbgLog("%s::%s(%d)\n", this->getName(), __FUNCTION__, level);
+    //DbgLog("%s::%s(%d)\n", this->getName(), __FUNCTION__, level);
 
     UInt32 rem;
     UInt32 index = indexForLevel(level, &rem);
@@ -697,7 +701,7 @@ void ACPIBacklightPanel::setBrightnessLevel(UInt32 level)
 
 void ACPIBacklightPanel::setBrightnessLevelSmooth(UInt32 level)
 {
-    DbgLog("%s::%s(%d)\n", this->getName(), __FUNCTION__, level);
+    //DbgLog("%s::%s(%d)\n", this->getName(), __FUNCTION__, level);
 
     //DbgLog("%s: _from_value=%d, _value=%d\n", this->getName(), _from_value, _value);
 
@@ -745,7 +749,7 @@ void ACPIBacklightPanel::onSmoothTimer()
 
     IORecursiveLockLock(_lock);
 
-    //DbgLog("%s::%s(): _from_value=%d, _value=%d, _smoothIndex=%d\n", this->getName(), __FUNCTION__, _from_value, _value, _smoothIndex);
+    DbgLog("%s::%s(): _from_value=%d, _value=%d, _smoothIndex=%d\n", this->getName(), __FUNCTION__, _from_value, _value, _smoothIndex);
 
     // adjust smooth index based on current delta
     int diff = abs(_value - _from_value);
@@ -1046,9 +1050,23 @@ bool ACPIBacklightPanel::getACStatus()
 
 void ACPIBacklightPanel::processWorkQueue(IOInterruptEventSource *, int)
 {
-    //DbgLog("%s::%s()\n", this->getName(),__FUNCTION__);
+    DbgLog("%s::%s() _workPending=%x\n", this->getName(),__FUNCTION__, _workPending);
+    
+    IORecursiveLockLock(_lock);
+    if (_workPending & kWorkSave)
+        saveACPIBrightnessLevelNVRAM(_committed_value);
+    if (_workPending & kWorkSetBrightness)
+        setBrightnessLevel(_committed_value);
+    _workPending = 0;
+    IORecursiveLockUnlock(_lock);
+}
 
-    saveACPIBrightnessLevelNVRAM(_committed_value);
+void ACPIBacklightPanel::scheduleWork(unsigned newWork)
+{
+    IORecursiveLockLock(_lock);
+    _workPending |= newWork;
+    _workSource->interruptOccurred(0, 0, 0);
+    IORecursiveLockUnlock(_lock);
 }
 
 IOReturn ACPIBacklightPanel::setPropertiesGated(OSObject* props)
@@ -1089,8 +1107,55 @@ IOReturn ACPIBacklightPanel::setPropertiesGated(OSObject* props)
             setProperty(buf, smoothData[i].timeout, 32);
         }
     }
+    
+#ifdef DEBUG
+    // special cycle test
+    if (OSNumber* num = OSDynamicCast(OSNumber, dict->getObject("CycleTest")))
+    {
+        IOLog("%s: CycleTest UP\n", this->getName());
+		UInt32 raw = (int)num->unsigned32BitValue();
+        for (int i = 1; i <= raw; i++)
+        {
+            setACPIBrightnessLevel(i);
+            IOSleep(16);
+        }
+        IOSleep(500);
+        IOLog("%s: CycleTest DOWN\n", this->getName());
+        for (int i = raw; i > 0; i--)
+        {
+            setACPIBrightnessLevel(i);
+            IOSleep(16);
+        }
+    }
+    // allow setting of KLVX at runtime
+	if (OSNumber* num = OSDynamicCast(OSNumber, dict->getObject("KLVX")))
+    {
+		UInt32 raw = (int)num->unsigned32BitValue();
+        setKLVX(raw);
+        setProperty("KLVX", raw, 32);
+    }
+#endif
     return kIOReturnSuccess;
 }
+
+#ifdef DEBUG
+void ACPIBacklightPanel::setKLVX(UInt32 levx)
+{
+    //DbgLog("%s::%s()\n", this->getName(),__FUNCTION__);
+    
+	OSObject * ret = NULL;
+	OSNumber * number = OSNumber::withNumber(levx, 32);
+    const char* method = "DEB1";
+    
+	if (number && kIOReturnSuccess == backLightDevice->evaluateObject(method, &ret, (OSObject**)&number, 1))
+    {
+        OSSafeRelease(ret);
+    }
+    else
+        IOLog("ACPIBacklight: Error in setKLVX %s(%u)\n",  method, levx);
+    OSSafeRelease(number);
+}
+#endif
 
 IOReturn ACPIBacklightPanel::setProperties(OSObject* props)
 {

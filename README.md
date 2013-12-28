@@ -73,6 +73,11 @@ http://www.tonymacx86.com/hp-probook-mavericks/118805-full-range-brightness-usin
 
 ### Change Log:
 
+2013-12-27 v2.0.2
+
+- More bug fixes related to secondary monitor connection/disconnect, lid closing/opening.
+
+
 2013-12-24 v2.0.1
 
 - Bug fixes. See issues at github.

@@ -77,6 +77,7 @@ bool ACPIBacklightPanel::init()
     _cmdGate = NULL;
 
     _extended = false;
+    _options = 0;
     _lock = NULL;
 
 	return super::init();
@@ -128,9 +129,12 @@ bool ACPIBacklightPanel::start( IOService * provider )
     _workPending = 0;
 
     // add timer for smooth fade ins
-    _smoothTimer = IOTimerEventSource::timerEventSource(this, OSMemberFunctionCast(IOTimerEventSource::Action, this, &ACPIBacklightPanel::onSmoothTimer));
-    if (_smoothTimer)
-        workLoop->addEventSource(_smoothTimer);
+    if (!(_options & kDisableSmooth))
+    {
+        _smoothTimer = IOTimerEventSource::timerEventSource(this, OSMemberFunctionCast(IOTimerEventSource::Action, this, &ACPIBacklightPanel::onSmoothTimer));
+        if (_smoothTimer)
+            workLoop->addEventSource(_smoothTimer);
+    }
 
     _cmdGate = IOCommandGate::commandGate(this);
     if (_cmdGate)
@@ -550,6 +554,9 @@ bool ACPIBacklightPanel::hasBacklightMethods(IOACPIPlatformDevice * acpiDevice)
     {
         DbgLog("%s: ACPI device %s has XBCM/XBQC\n", this->getName(), acpiDevice->getName());
         _extended = true;
+        UInt32 options = 0;
+        if (kIOReturnSuccess == acpiDevice->evaluateInteger("XOPT", &options))
+            _options = options;
     }
 
     if (!_extended)

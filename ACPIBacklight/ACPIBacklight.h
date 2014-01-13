@@ -95,10 +95,14 @@ private:
 	SInt32 * BCLlevels;
 	UInt32 BCLlevelsCount;
 	UInt32 minAC, maxBat, min, max;
+    
+    UInt32 _options;
+    enum { kDisableSmooth = 0x01 };
+    
 	bool hasSaveMethod;
     int _value;  // osx value
     int _from_value; // current value working towards _value
-    int _committed_value; 
+    int _committed_value;
     
 	PRIVATE void getDeviceControl();
     

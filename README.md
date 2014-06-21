@@ -108,7 +108,7 @@ http://www.insanelymac.com/forum/topic/268219-acpi-backlight-driver/
 
 This version is enhanced by RehabMan for various features called out in the Change log, above.
 
-Originally, we had little reason to use this kext on the HP ProBook, becuase the ACPI methods are broken on the ProBook series (they attempt to call back into Windows).  the combination of native brightness with PNLF patch and 'blinkscreen' was imperfect, but good enough.  But eventually, a method was discovered where by the hardware registers that control brightness on the HD3000/HD4000 can be manipulated directly from DSDT code.  For more information on these patches, see: https://github.com/RehabMan/HP-ProBook-4x30s-DSDT-Patch
+Originally, we had little reason to use this kext on the HP ProBook, because the ACPI methods are broken on the ProBook series (they attempt to call back into Windows).  the combination of native brightness with PNLF patch and 'blinkscreen' was imperfect, but good enough.  But eventually, a method was discovered where by the hardware registers that control brightness on the HD3000/HD4000 can be manipulated directly from DSDT code.  For more information on these patches, see: https://github.com/RehabMan/HP-ProBook-4x30s-DSDT-Patch
 
 Some of the details are covered in this thread: http://www.tonymacx86.com/hp-probook-mavericks/118805-full-range-brightness-using-acpibacklight.html
 

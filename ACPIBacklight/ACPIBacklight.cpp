@@ -183,6 +183,7 @@ bool ACPIBacklightPanel::start( IOService * provider )
         DbgLog("%s: setting to value from nvram %d\n", this->getName(), value);
         setBrightnessLevelSmooth(value);
     }
+    _saved_value = _committed_value;
 
     // make the service available for clients like 'ioio'...
     registerService();
@@ -313,7 +314,7 @@ bool ACPIBacklightPanel::setDisplay( IODisplay * display )
     {
         // automatically commit a non-zero value on display change
         if (_value)
-            _committed_value = _value;
+            _saved_value = _committed_value = _value;
         // update brightness levels
         doUpdate();
     }
@@ -327,7 +328,28 @@ bool ACPIBacklightPanel::doIntegerSet( OSDictionary * params, const OSSymbol * p
     if ( gIODisplayBrightnessKey->isEqualTo(paramName))
     {   
         //DbgLog("%s::%s(%s) map %d -> %d\n", this->getName(),__FUNCTION__, paramName->getCStringNoCopy(), value, indexForLevel(value));
+        //REVIEW: workaround for Yosemite DP...
+        if (!value && _value != 0)
+        {
+            //REVIEW: copied from commit case below...
+            // setting to zero automatically commits prior value
+            UInt32 index = indexForLevel(_value);
+            _committed_value = _value;
+            // save to NVRAM in work loop
+            scheduleWork(kWorkSave|kWorkSetBrightness);
+            // save to BIOS nvram via ACPI
+            if (hasSaveMethod)
+                saveACPIBrightnessLevel(BCLlevels[index]);
+        }
+        if (0xFF == value)
+        {
+            setBrightnessLevelSmooth(_saved_value);
+            return false;
+        }
+        //REVIEW: end workaround...
         setBrightnessLevelSmooth(value);
+        if (value)
+            _saved_value = value;
         return true;
     }
     else if (gIODisplayParametersCommitKey->isEqualTo(paramName))
@@ -356,7 +378,7 @@ bool ACPIBacklightPanel::doDataSet( const OSSymbol * paramName, OSData * value )
 
 bool ACPIBacklightPanel::doUpdate( void )
 {
-    DbgLog("%s::%s()\n", this->getName(),__FUNCTION__);
+    DbgLog("enter %s::%s()\n", this->getName(),__FUNCTION__);
     bool result = false;
 
     OSDictionary* newDict = 0;
@@ -409,6 +431,7 @@ bool ACPIBacklightPanel::doUpdate( void )
         result = true;
 	}
 
+    DbgLog("exit %s::%s()\n", this->getName(),__FUNCTION__);
     return result;
 }
 
@@ -682,7 +705,7 @@ void ACPIBacklightPanel::setACPIBrightnessLevel(UInt32 level)
     {
         OSSafeRelease(ret);
 
-        DbgLog("%s: setACPIBrightnessLevel %s(%u)\n", this->getName(), method, level);
+        ////DbgLog("%s: setACPIBrightnessLevel %s(%u)\n", this->getName(), method, level);
 
         // just FYI... set RawBrightness property to actual current level
         setProperty(kRawBrightness, queryACPICurentBrightnessLevel(), 32);
@@ -765,7 +788,7 @@ void ACPIBacklightPanel::onSmoothTimer()
 
     IORecursiveLockLock(_lock);
 
-    DbgLog("%s::%s(): _from_value=%d, _value=%d, _smoothIndex=%d\n", this->getName(), __FUNCTION__, _from_value, _value, _smoothIndex);
+    ////DbgLog("%s::%s(): _from_value=%d, _value=%d, _smoothIndex=%d\n", this->getName(), __FUNCTION__, _from_value, _value, _smoothIndex);
 
     // adjust smooth index based on current delta
     int diff = abs(_value - _from_value);

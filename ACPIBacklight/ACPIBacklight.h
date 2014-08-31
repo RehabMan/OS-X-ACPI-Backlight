@@ -103,6 +103,7 @@ private:
     int _value;  // osx value
     int _from_value; // current value working towards _value
     int _committed_value;
+    int _saved_value;
     
 	PRIVATE void getDeviceControl();
     

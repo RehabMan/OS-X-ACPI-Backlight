@@ -329,7 +329,7 @@ bool ACPIBacklightPanel::doIntegerSet( OSDictionary * params, const OSSymbol * p
     {   
         //DbgLog("%s::%s(%s) map %d -> %d\n", this->getName(),__FUNCTION__, paramName->getCStringNoCopy(), value, indexForLevel(value));
         //REVIEW: workaround for Yosemite DP...
-        if (!value && _value != 0)
+        if (value < 5 && _value > 5)
         {
             //REVIEW: copied from commit case below...
             // setting to zero automatically commits prior value
@@ -348,7 +348,7 @@ bool ACPIBacklightPanel::doIntegerSet( OSDictionary * params, const OSSymbol * p
         }
         //REVIEW: end workaround...
         setBrightnessLevelSmooth(value);
-        if (value)
+        if (value > 5) // more hacks for Yosemite (don't save really low values)
             _saved_value = value;
         return true;
     }
@@ -740,7 +740,7 @@ void ACPIBacklightPanel::setBrightnessLevel(UInt32 level)
 
 void ACPIBacklightPanel::setBrightnessLevelSmooth(UInt32 level)
 {
-    //DbgLog("%s::%s(%d)\n", this->getName(), __FUNCTION__, level);
+    DbgLog("%s::%s(%d)\n", this->getName(), __FUNCTION__, level);
 
     //DbgLog("%s: _from_value=%d, _value=%d\n", this->getName(), _from_value, _value);
 

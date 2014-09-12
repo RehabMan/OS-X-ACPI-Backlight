@@ -138,7 +138,7 @@ bool ACPIBacklightPanel::start( IOService * provider )
     _workPending = 0;
 
     // add timer for smooth fade ins
-    if (!(_options & kDisableSmooth))
+    if (_extended && !(_options & kDisableSmooth))
     {
         _smoothTimer = IOTimerEventSource::timerEventSource(this, OSMemberFunctionCast(IOTimerEventSource::Action, this, &ACPIBacklightPanel::onSmoothTimer));
         if (_smoothTimer)
@@ -189,7 +189,7 @@ bool ACPIBacklightPanel::start( IOService * provider )
     registerService();
 
     DbgLog("%s: min = %u, max = %u\n", this->getName(), min, max);
-	IOLog("ACPIBacklight: Version 2.0.2\n");
+	IOLog("ACPIBacklight: Version 2.0.3\n");
 
 	return true;
 }
@@ -686,7 +686,7 @@ OSArray * ACPIBacklightPanel::queryACPISupportedBrightnessLevels()
 	}
 	else
     {
-		DbgLog("%s: Cast Error _BCL is %s\n", this->getName(), ret->getMetaClass()->getClassName());
+		DbgLog("%s: Cast Error _BCL is %s\n", this->getName(), ret ? ret->getMetaClass()->getClassName() : "ret=NULL");
 	}
 	OSSafeRelease(ret);
 	return NULL;
@@ -744,7 +744,7 @@ void ACPIBacklightPanel::setBrightnessLevelSmooth(UInt32 level)
 
     //DbgLog("%s: _from_value=%d, _value=%d\n", this->getName(), _from_value, _value);
 
-    if (_smoothTimer && _extended)
+    if (_smoothTimer)
     {
         IORecursiveLockLock(_lock);
 

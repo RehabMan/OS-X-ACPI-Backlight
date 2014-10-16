@@ -15,7 +15,7 @@ https://bitbucket.org/RehabMan/os-x-acpi-backlight/downloads
 
 ### Build Environment
 
-My build environment is currently Xcode 5.0.2, using SDK 10.8, targeting OS X 10.6.
+My build environment is currently Xcode 6.1, using SDK 10.8, targeting OS X 10.6.
 
 No other build environment is supported.
 
@@ -72,6 +72,15 @@ http://www.tonymacx86.com/hp-probook-mavericks/118805-full-range-brightness-usin
 
 
 ### Change Log:
+
+2014-10-16 v2.0.3
+
+- Added option to disable smooth transitions from DSDT (or SSDT)
+
+- Fixes for issues on Yosemite
+
+- Fixes for crashes in debug mode, and crashes where bad data is provided from DSDT (or SSDT)
+
 
 2013-12-27 v2.0.2
 

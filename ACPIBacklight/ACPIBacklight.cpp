@@ -122,6 +122,11 @@ bool ACPIBacklightPanel::start( IOService * provider )
     hasSaveMethod = hasSAVEMethod(backLightDevice);
     min = 0;
     max = setupIndexedLevels();
+    if (min == max)
+    {
+        IOLog("ACPIBacklight: setupIndexedLevels failed (min==max)... aborting");
+        return false;
+    }
 
     // add interrupt source for delayed actions...
     _workSource = IOInterruptEventSource::interruptEventSource(this, OSMemberFunctionCast(IOInterruptEventAction, this, &ACPIBacklightPanel::processWorkQueue));
@@ -293,10 +298,13 @@ UInt32 ACPIBacklightPanel::levelForValue(UInt32 value)
     {
         // pro-rate between levels
         int diff = levelForIndex(index+1) - level;
-        // now pro-rate diff for value as between BCLLevels[index] and BCLLevels[index+1]
-        diff *= value - BCLlevels[index];
-        diff /= BCLlevels[index+1] - BCLlevels[index];
-        level += diff;
+        if (BCLlevels[index+1] != BCLlevels[index])
+        {
+            // now pro-rate diff for value as between BCLLevels[index] and BCLLevels[index+1]
+            diff *= value - BCLlevels[index];
+            diff /= BCLlevels[index+1] - BCLlevels[index];
+            level += diff;
+        }
     }
     return level;
 }

@@ -31,8 +31,9 @@
 #include <IOKit/IOInterruptEventSource.h>
 #include <IOKit/IOLocks.h>
 
+#define NOINLINE __attribute__((noinline))
 #define EXPORT __attribute__((visibility("default")))
-#define PRIVATE __attribute__((visibility("hidden")))
+#define PRIVATE __attribute__((visibility("hidden"))) NOINLINE
 
 class EXPORT ACPIBacklightPanel : public IODisplayParameterHandler
 {
@@ -114,8 +115,8 @@ private:
     PRIVATE void  onSmoothTimer(void);
     PRIVATE void saveACPIBrightnessLevelNVRAM(UInt32 level);
     PRIVATE UInt32 loadFromNVRAM(void);
-    PRIVATE UInt32 indexForLevel(UInt32 value, UInt32* rem = NULL);
-    PRIVATE UInt32 levelForIndex(UInt32 level);
+    PRIVATE NOINLINE UInt32 indexForLevel(UInt32 value, UInt32* rem = NULL);
+    PRIVATE NOINLINE UInt32 levelForIndex(UInt32 level);
     PRIVATE UInt32 levelForValue(UInt32 value);
 
     PRIVATE IOReturn setPropertiesGated(OSObject* props);

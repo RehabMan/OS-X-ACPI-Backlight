@@ -27,11 +27,13 @@ update_kernelcache:
 
 .PHONY: install_debug
 install_debug:
+	sudo rm -R $(INSTDIR)/$(KEXT)
 	sudo cp -R ./Build/Debug/$(KEXT) $(INSTDIR)
 	make update_kernelcache
 
 .PHONY: install
 install:
+	sudo rm -R $(INSTDIR)/$(KEXT)
 	sudo cp -R ./Build/Release/$(KEXT) $(INSTDIR)
 	make update_kernelcache
 

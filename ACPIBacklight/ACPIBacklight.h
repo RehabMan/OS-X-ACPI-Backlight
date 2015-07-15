@@ -35,9 +35,53 @@
 #define EXPORT __attribute__((visibility("default")))
 #define PRIVATE __attribute__((visibility("hidden"))) NOINLINE
 
+class ACPIBacklightPanel;
+
+struct BacklightHandlerParams
+{
+    UInt32 _xrgl, _xrgh, _klvx, _lmax, _kpch;
+};
+
+class EXPORT BacklightHandler : public IOService
+{
+    OSDeclareDefaultStructors(BacklightHandler)
+    typedef IOService super;
+
+public:
+    // BacklightHandler
+    virtual void setBacklightLevel(UInt32 level);
+    virtual UInt32 getBacklightLevel();
+};
+
+class EXPORT IntelBacklightHandler : public BacklightHandler
+{
+    OSDeclareDefaultStructors(IntelBacklightHandler)
+    typedef BacklightHandler super;
+
+private:
+    IOMemoryMap *_baseMap;
+    volatile void *_baseAddr;
+    ACPIBacklightPanel* _panel;
+    UInt32 _fbtype;
+    BacklightHandlerParams _params;
+
+    enum { kFBTypeIvySandy = 1, kFBTypeHaswellBroadwell = 2, };
+
+public:
+    // IOService
+    virtual bool init();
+    virtual bool start(IOService * provider);
+    virtual void stop(IOService * provider);
+
+    // BacklightHandler
+    virtual void setBacklightLevel(UInt32 level);
+    virtual UInt32 getBacklightLevel();
+};
+
 class EXPORT ACPIBacklightPanel : public IODisplayParameterHandler
 {
     OSDeclareDefaultStructors(ACPIBacklightPanel)
+    typedef IODisplayParameterHandler super;
 
 public:
 	// IOService
@@ -48,14 +92,18 @@ public:
     virtual void free();
     virtual IOReturn setProperties(OSObject* props);
 
-    //IODisplayParameterHandler
+    // IODisplayParameterHandler
     virtual bool setDisplay( IODisplay * display );
     virtual bool doIntegerSet( OSDictionary * params,
                               const OSSymbol * paramName, UInt32 value );
     virtual bool doDataSet( const OSSymbol * paramName, OSData * value );
     virtual bool doUpdate( void );
+
+    // ACPIBacklightPanel
+    virtual void setBacklightHandler(BacklightHandler* handler, BacklightHandlerParams* params);
     
 private:
+    BacklightHandler* _backlightHandler;
     IODisplay * _display;
     
     IOACPIPlatformDevice *  gpuDevice, * backLightDevice;
@@ -98,8 +146,9 @@ private:
 	UInt32 minAC, maxBat, min, max;
     
     UInt32 _options;
-    enum { kDisableSmooth = 0x01 };
-    
+    enum { kDisableSmooth = 0x01, kWaitForHandler = 0x02, };
+    BacklightHandlerParams _handlerParams;
+
 	bool hasSaveMethod;
     int _value;  // osx value
     int _from_value; // current value working towards _value

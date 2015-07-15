@@ -238,6 +238,7 @@
 				"OTHER_LDFLAGS[arch=x86_64]" = "-dead_strip";
 				SDKROOT = macosx10.8;
 				STRIP_STYLE = "non-global";
+				SYMROOT = build/Products;
 			};
 			name = Debug;
 		};
@@ -270,6 +271,7 @@
 				"OTHER_LDFLAGS[arch=x86_64]" = "-dead_strip";
 				SDKROOT = macosx10.8;
 				STRIP_STYLE = "non-global";
+				SYMROOT = build/Products;
 			};
 			name = Release;
 		};
@@ -277,13 +279,12 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 2.0.3d1;
+				CURRENT_PROJECT_VERSION = 3.0.0d1;
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "ACPIBacklight/ACPIBacklight-Prefix.pch";
 				INFOPLIST_FILE = "ACPIBacklight/ACPIBacklight-Info.plist";
 				MACOSX_DEPLOYMENT_TARGET = 10.6;
 				MODULE_NAME = com.darwin.driver.ACPIBacklight;
-				MODULE_VERSION = 2.0.3d1;
 				ONLY_ACTIVE_ARCH = NO;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
@@ -293,13 +294,12 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 2.0.3d1;
+				CURRENT_PROJECT_VERSION = 3.0.0d1;
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "ACPIBacklight/ACPIBacklight-Prefix.pch";
 				INFOPLIST_FILE = "ACPIBacklight/ACPIBacklight-Info.plist";
 				MACOSX_DEPLOYMENT_TARGET = 10.6;
 				MODULE_NAME = com.darwin.driver.ACPIBacklight;
-				MODULE_VERSION = 2.0.3d1;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Release;

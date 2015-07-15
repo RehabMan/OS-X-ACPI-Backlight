@@ -19,11 +19,11 @@
 	<key>CFBundlePackageType</key>
 	<string>KEXT</string>
 	<key>CFBundleShortVersionString</key>
-	<string>2.0.3</string>
+	<string>3.0.0d1</string>
 	<key>CFBundleSignature</key>
 	<string>????</string>
 	<key>CFBundleVersion</key>
-	<string>2.0.3</string>
+	<string>3.0.0d1</string>
 	<key>IOKitPersonalities</key>
 	<dict>
 		<key>ACPIBacklight</key>
@@ -62,6 +62,48 @@
 				</dict>
 			</dict>
 		</dict>
+		<key>Sandy Ivy HD Handler</key>
+		<dict>
+			<key>RM,Version</key>
+			<string>${PRODUCT_NAME} ${MODULE_VERSION}</string>
+			<key>RM,Build</key>
+			<string>${CONFIGURATION}-${LOGNAME}</string>
+			<key>CFBundleIdentifier</key>
+			<string>com.darwin.driver.${PRODUCT_NAME:rfc1034identifier}</string>
+			<key>IOClass</key>
+			<string>IntelBacklightHandler</string>
+			<key>IOMatchCategory</key>
+			<string>IntelBacklightHandler</string>
+			<key>IOProbeScore</key>
+			<integer>4000</integer>
+			<key>IOPCIPrimaryMatch</key>
+			<string>0x01168086 0x01268086 0x01668086 0x00428086 0x00468086</string>
+			<key>IOProviderClass</key>
+			<string>IOPCIDevice</string>
+			<key>kFrameBufferType</key>
+			<integer>1</integer>
+		</dict>
+		<key>Haswell Broadwell Handler</key>
+		<dict>
+			<key>RM,Version</key>
+			<string>${PRODUCT_NAME} ${MODULE_VERSION}</string>
+			<key>RM,Build</key>
+			<string>${CONFIGURATION}-${LOGNAME}</string>
+			<key>CFBundleIdentifier</key>
+			<string>com.darwin.driver.${PRODUCT_NAME:rfc1034identifier}</string>
+			<key>IOClass</key>
+			<string>IntelBacklightHandler</string>
+			<key>IOMatchCategory</key>
+			<string>IntelBacklightHandler</string>
+			<key>IOProbeScore</key>
+			<integer>4000</integer>
+			<key>IOPCIPrimaryMatch</key>
+			<string>0x04128086 0x04168086 0x0a168086 0x0a1e8086 0x041e8086 0x041a8086 0x0BD18086 0x0BD28086 0x0BD38086 0x16068086 0x160e8086 0x16168086 0x161e8086 0x16268086 0x16228086 0x16128086 0x162b8086</string>
+			<key>IOProviderClass</key>
+			<string>IOPCIDevice</string>
+			<key>kFrameBufferType</key>
+			<integer>2</integer>
+		</dict>
 	</dict>
 	<key>OSBundleLibraries</key>
 	<dict>
@@ -69,12 +111,12 @@
 		<string>1.0b1</string>
 		<key>com.apple.iokit.IOACPIFamily</key>
 		<string>1.0d1</string>
+		<key>com.apple.iokit.IOPCIFamily</key>
+		<string>1.7</string>
 		<key>com.apple.kpi.iokit</key>
 		<string>7.0</string>
 		<key>com.apple.kpi.libkern</key>
 		<string>8.0d0</string>
 	</dict>
-	<key>OSBundleRequired</key>
-	<string>Safe Boot</string>
 </dict>
 </plist>

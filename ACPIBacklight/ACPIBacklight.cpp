@@ -20,6 +20,8 @@
  * @APPLE_LICENSE_HEADER_END@
  */
 
+#include <IOKit/IOService.h>
+#include <IOKit/pci/IOPCIDevice.h>
 
 #include <IOKit/IONVRAM.h>
 #include <IOKit/IOLib.h>
@@ -34,8 +36,6 @@ void* _org_rehabman_dontstrip_[] =
     (void*)&OSKextGetCurrentLoadTag,
     (void*)&OSKextGetCurrentVersionString,
 };
-
-#define super IODisplayParameterHandler
 
 OSDefineMetaClassAndStructors(ACPIBacklightPanel, IODisplayParameterHandler)
 
@@ -89,6 +89,8 @@ bool ACPIBacklightPanel::init()
     _options = 0;
     _lock = NULL;
 
+    _backlightHandler = NULL;
+
 	return super::init();
 }
 
@@ -108,7 +110,6 @@ IOService * ACPIBacklightPanel::probe( IOService * provider, SInt32 * score )
     return super::probe(provider, score);
 }
 
-
 bool ACPIBacklightPanel::start( IOService * provider )
 {
     DbgLog("%s::%s()\n", this->getName(),__FUNCTION__);
@@ -118,6 +119,7 @@ bool ACPIBacklightPanel::start( IOService * provider )
         return false;
     
     findDevices(provider);
+
     getDeviceControl();
     hasSaveMethod = hasSAVEMethod(backLightDevice);
     min = 0;
@@ -176,9 +178,21 @@ bool ACPIBacklightPanel::start( IOService * provider )
     setProperty("KLVX", 1, 32);
 #endif
 
+    // make the service available for clients like 'ioio'...
+    registerService();
+
     // load and set default brightness level
     UInt32 value = loadFromNVRAM();
     DbgLog("%s: loadFromNVRAM returns %d\n", this->getName(), value);
+
+    // registerService above must be called before we wait for the BacklightHandler
+    if (_options & kWaitForHandler)
+    {
+        DbgLog("%s: Waiting for BacklightHandler\n", this->getName());
+        waitForService(serviceMatching("BacklightHandler"));
+    }
+
+    // after backlight handler is in place, now we can manipulate backlight level
     UInt32 current = queryACPICurentBrightnessLevel();
     _committed_value = _value = _from_value = levelForValue(current);
     DbgLog("%s: current brightness: %d (%d)\n", this->getName(), _from_value, current);
@@ -190,15 +204,11 @@ bool ACPIBacklightPanel::start( IOService * provider )
     }
     _saved_value = _committed_value;
 
-    // make the service available for clients like 'ioio'...
-    registerService();
-
     DbgLog("%s: min = %u, max = %u\n", this->getName(), min, max);
-	IOLog("ACPIBacklight: Version 2.0.3\n");
+	IOLog("ACPIBacklight: Version 3.0.0d1\n");
 
 	return true;
 }
-
 
 void ACPIBacklightPanel::stop( IOService * provider )
 {
@@ -234,7 +244,9 @@ void ACPIBacklightPanel::stop( IOService * provider )
         _lock = NULL;
     }
 
-    return super::stop(provider);
+    _backlightHandler = NULL;
+
+    super::stop(provider);
 }
 
 void ACPIBacklightPanel::free()
@@ -268,6 +280,12 @@ void ACPIBacklightPanel::free()
     super::free();
 }
 
+void ACPIBacklightPanel::setBacklightHandler(BacklightHandler *handler, BacklightHandlerParams* params)
+{
+    _backlightHandler = handler;
+    if (params)
+        *params = _handlerParams;
+}
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 #pragma mark -
@@ -579,7 +597,6 @@ IOACPIPlatformDevice *  ACPIBacklightPanel::getGPU()
     return ret;
 }
 
-
 bool ACPIBacklightPanel::hasBacklightMethods(IOACPIPlatformDevice * acpiDevice)
 {
     DbgLog("%s::%s()\n", this->getName(),__FUNCTION__);
@@ -594,9 +611,20 @@ bool ACPIBacklightPanel::hasBacklightMethods(IOACPIPlatformDevice * acpiDevice)
     {
         DbgLog("%s: ACPI device %s has XBCM/XBQC\n", this->getName(), acpiDevice->getName());
         _extended = true;
-        UInt32 options = 0;
-        if (kIOReturnSuccess == acpiDevice->evaluateInteger("XOPT", &options))
-            _options = options;
+
+        // get additional paramaters from ACPI PNLF device methods
+        _options = 0;
+        acpiDevice->evaluateInteger("XOPT", &_options);
+        _handlerParams._xrgl = -1;
+        acpiDevice->evaluateInteger("XRGL", &_handlerParams._xrgl);
+        _handlerParams._xrgh = -1;
+        acpiDevice->evaluateInteger("XRGH", &_handlerParams._xrgh);
+        _handlerParams._klvx = -1;
+        acpiDevice->evaluateInteger("KLVX", &_handlerParams._klvx);
+        _handlerParams._lmax = -1;
+        acpiDevice->evaluateInteger("LMAX", &_handlerParams._lmax);
+        _handlerParams._kpch = -1;
+        acpiDevice->evaluateInteger("KPCH", &_handlerParams._kpch);
     }
 
     if (!_extended)
@@ -704,7 +732,17 @@ OSArray * ACPIBacklightPanel::queryACPISupportedBrightnessLevels()
 void ACPIBacklightPanel::setACPIBrightnessLevel(UInt32 level)
 {
     //DbgLog("%s::%s()\n", this->getName(),__FUNCTION__);
-    
+
+    if (_backlightHandler)
+    {
+        //set backlight via native handler instead of ACPI...
+        _backlightHandler->setBacklightLevel(level);
+
+        // just FYI... set RawBrightness property to actual current level
+        setProperty(kRawBrightness, queryACPICurentBrightnessLevel(), 32);
+        return;
+    }
+
 	OSObject * ret = NULL;
 	OSNumber * number = OSNumber::withNumber(level, 32);
     const char* method = _extended ? "XBCM" : "_BCM";
@@ -909,8 +947,11 @@ UInt32 ACPIBacklightPanel::loadFromNVRAM(void)
 UInt32 ACPIBacklightPanel::queryACPICurentBrightnessLevel()
 {
     //DbgLog("%s::%s()\n", this->getName(),__FUNCTION__);
+
+    if (_backlightHandler)
+        return _backlightHandler->getBacklightLevel();
     
-	UInt32 level = minAC;
+    UInt32 level = minAC;
     const char* method = _extended ? "XBQC" : "_BQC";
 	if (kIOReturnSuccess == backLightDevice->evaluateInteger(method, &level))
 	{
@@ -1217,3 +1258,181 @@ IOReturn ACPIBacklightPanel::setProperties(OSObject* props)
     }
     return kIOReturnSuccess;
 }
+
+////////////////////////////////////////////////////////////////
+
+OSDefineMetaClassAndStructors(BacklightHandler, IOService)
+
+void BacklightHandler::setBacklightLevel(UInt32 level)
+{
+    // no implementation
+}
+
+UInt32 BacklightHandler::getBacklightLevel()
+{
+    // no implementation
+    return -1;
+}
+
+OSDefineMetaClassAndStructors(IntelBacklightHandler, BacklightHandler)
+
+bool IntelBacklightHandler::init()
+{
+    if (!super::init())
+        return false;
+
+    _baseMap = NULL;
+    _baseAddr = NULL;
+    _panel = NULL;
+    _fbtype = 0;
+    memset(&_params, 0, sizeof(_params));
+
+    return true;
+}
+
+bool IntelBacklightHandler::start(IOService *provider)
+{
+    if (!super::start(provider))
+        return false;
+
+    IOPCIDevice* pci = OSDynamicCast(IOPCIDevice, provider);
+    if (!pci)
+    {
+        IOLog("IntelBacklightHandler is not an IOPCIDevice... aborting\n");
+        return false;
+    }
+
+    // setup for direct access
+    IOService* service = waitForMatchingService(serviceMatching("ACPIBacklightPanel"), 2000UL*1000UL*1000UL);
+    if (!service)
+    {
+        IOLog("ACPIBacklightPanel not found... aborting\n");
+        return false;
+    }
+    ACPIBacklightPanel* panel = OSDynamicCast(ACPIBacklightPanel, service);
+    if (!panel)
+    {
+        IOLog("Backlight service was not ACPIBacklightPanel\n");
+        return false;
+    }
+
+    // setup BAR1 address...
+    _baseMap = pci->mapDeviceMemoryWithRegister(kIOPCIConfigBaseAddress0);
+    if (!_baseMap)
+    {
+        IOLog("unable to map BAR1... aborting\n");
+        return false;
+    }
+    _baseAddr = reinterpret_cast<volatile void *>(_baseMap->getVirtualAddress());
+    if (!_baseAddr)
+    {
+        IOLog("unable to get virtual address for BAR1... aborting\n");
+        return false;
+    }
+
+    OSNumber* num = OSDynamicCast(OSNumber, getProperty("kFrameBufferType"));
+    if (num == NULL)
+    {
+        IOLog("unable to get framebuffer type\n");
+        return false;
+    }
+    _fbtype = num->unsigned32BitValue();
+
+    // now register with ACPIBacklight
+    panel->setBacklightHandler(this, &_params);
+    _panel = panel;
+    panel->retain();
+
+    // register service so ACPIBacklightPanel can proceed...
+    registerService();
+
+    return true;
+}
+
+void IntelBacklightHandler::stop(IOService * provider)
+{
+    if (_panel)
+    {
+        _panel->setBacklightHandler(NULL, NULL);
+        _panel->release();
+        _panel = NULL;
+    }
+    OSSafeReleaseNULL(_baseMap);
+    _baseAddr = NULL;
+
+    super::stop(provider);
+}
+
+#define REG32_READ(offset)          (*(volatile UInt32*)((UInt8*)_baseAddr+(offset)))
+#define REG32_WRITE(offset,value)   ((*(volatile UInt32*)((UInt8*)_baseAddr+(offset))) = (value))
+
+#define LEV2 0x48250
+#define LEVL 0x48254
+#define LEVW 0xc8250
+#define LEVX 0xc8254
+#define PCHL 0xe1180
+
+void IntelBacklightHandler::setBacklightLevel(UInt32 level)
+{
+    if (!_baseAddr)
+        return;
+
+    // adjust level to within limits set by XRGL and XRGH
+    if (level > _params._xrgh)
+        level = _params._xrgh;
+    if (level && level < _params._xrgl)
+        level = _params._xrgl;
+
+    // write backlight level
+    switch (_fbtype)
+    {
+        case kFBTypeHaswellBroadwell:
+        {
+            // store new backlight level and restore max
+            REG32_WRITE(LEVX, (_params._lmax<<16) | level);
+            break;
+        }
+
+        case kFBTypeIvySandy:
+        {
+            // initialize for consistent backlight level before/after sleep\n
+            if (REG32_READ(PCHL) != _params._kpch)
+                REG32_WRITE(PCHL, _params._kpch);
+            if (REG32_READ(LEVW) != 0x80000000)
+                REG32_WRITE(LEVW, 0X80000000);
+            if (REG32_READ(LEVX) != _params._klvx)
+                REG32_WRITE(LEVX, _params._klvx);
+            // store new backlight level
+            if (REG32_READ(LEV2) != 0x80000000)
+                REG32_WRITE(LEV2, 0X80000000);
+            REG32_WRITE(LEVL, level);
+            break;
+        }
+    }
+}
+
+UInt32 IntelBacklightHandler::getBacklightLevel()
+{
+    if (!_baseAddr)
+        return -1;
+
+    // read backlight level
+    UInt32 result = -1;
+    switch (_fbtype)
+    {
+        case kFBTypeHaswellBroadwell:
+            result = REG32_READ(LEVX) & 0xFFFF;
+
+        case kFBTypeIvySandy:
+            result = REG32_READ(LEVL);
+    }
+
+    // adjust result to be within limits set by XRGL and XRGH
+    if (result > _params._xrgh)
+        result = _params._xrgh;
+    if (result && result < _params._xrgl)
+        result = _params._xrgl;
+
+    return result;
+}
+

@@ -205,7 +205,7 @@ bool ACPIBacklightPanel::start( IOService * provider )
     _saved_value = _committed_value;
 
     DbgLog("%s: min = %u, max = %u\n", this->getName(), min, max);
-	IOLog("ACPIBacklight: Version 3.0.0d1\n");
+	IOLog("ACPIBacklight: Version 3.0.1d2\n");
 
 	return true;
 }
@@ -1396,15 +1396,15 @@ void IntelBacklightHandler::setBacklightLevel(UInt32 level)
         case kFBTypeIvySandy:
         {
             // initialize for consistent backlight level before/after sleep\n
-            if (REG32_READ(PCHL) != _params._kpch)
+            if (_params._kpch != -1 && REG32_READ(PCHL) != _params._kpch)
                 REG32_WRITE(PCHL, _params._kpch);
             if (REG32_READ(LEVW) != 0x80000000)
-                REG32_WRITE(LEVW, 0X80000000);
+                REG32_WRITE(LEVW, 0x80000000);
             if (REG32_READ(LEVX) != _params._klvx)
                 REG32_WRITE(LEVX, _params._klvx);
             // store new backlight level
             if (REG32_READ(LEV2) != 0x80000000)
-                REG32_WRITE(LEV2, 0X80000000);
+                REG32_WRITE(LEV2, 0x80000000);
             REG32_WRITE(LEVL, level);
             break;
         }

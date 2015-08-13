@@ -280,11 +280,16 @@ void ACPIBacklightPanel::free()
     super::free();
 }
 
-void ACPIBacklightPanel::setBacklightHandler(BacklightHandler *handler, BacklightHandlerParams* params)
+bool ACPIBacklightPanel::setBacklightHandler(BacklightHandler *handler, BacklightHandlerParams* params)
 {
+    if (!(_options & kWaitForHandler))
+        return false;
+
     _backlightHandler = handler;
     if (params)
         *params = _handlerParams;
+
+    return true;
 }
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -1339,7 +1344,12 @@ bool IntelBacklightHandler::start(IOService *provider)
     _fbtype = num->unsigned32BitValue();
 
     // now register with ACPIBacklight
-    panel->setBacklightHandler(this, &_params);
+    if (!panel->setBacklightHandler(this, &_params))
+    {
+        // setBacklightHandler will return false for old PNLF patches
+        _baseMap->release();
+        return false;
+    }
     _panel = panel;
     panel->retain();
 

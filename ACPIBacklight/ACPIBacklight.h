@@ -100,7 +100,7 @@ public:
     virtual bool doUpdate( void );
 
     // ACPIBacklightPanel
-    virtual void setBacklightHandler(BacklightHandler* handler, BacklightHandlerParams* params);
+    virtual bool setBacklightHandler(BacklightHandler* handler, BacklightHandlerParams* params);
     
 private:
     BacklightHandler* _backlightHandler;

@@ -22,6 +22,7 @@
 
 #include <IOKit/IOService.h>
 #include <IOKit/pci/IOPCIDevice.h>
+#include <libkern/version.h>
 
 #include <IOKit/IONVRAM.h>
 #include <IOKit/IOLib.h>
@@ -80,6 +81,9 @@ bool ACPIBacklightPanel::init()
     BCLlevels = NULL;
     gpuDevice = NULL;
     _display = NULL;
+#if 0
+    _provider = NULL;
+#endif
 
     _workSource = NULL;
     _smoothTimer = NULL;
@@ -113,6 +117,14 @@ IOService * ACPIBacklightPanel::probe( IOService * provider, SInt32 * score )
 bool ACPIBacklightPanel::start( IOService * provider )
 {
     DbgLog("%s::%s()\n", this->getName(),__FUNCTION__);
+
+#if 0
+    if (!provider)
+        return false;
+
+    _provider = provider;
+    _provider->retain();
+#endif
 
     _lock = IORecursiveLockAlloc();
     if (!_lock)
@@ -171,8 +183,6 @@ bool ACPIBacklightPanel::start( IOService * provider )
         snprintf(buf, sizeof(buf), kSmoothTimeout, i);
         setProperty(buf, smoothData[i].timeout, 32);
     }
-    setProperty(kRawBrightness, queryACPICurentBrightnessLevel(), 32);
-    
 #ifdef DEBUG
     setProperty("CycleTest", 1, 32);
     setProperty("KLVX", 1, 32);
@@ -186,7 +196,7 @@ bool ACPIBacklightPanel::start( IOService * provider )
     DbgLog("%s: loadFromNVRAM returns %d\n", this->getName(), value);
 
     // registerService above must be called before we wait for the BacklightHandler
-    if (_options & kWaitForHandler)
+    if (useBacklightHandler())
     {
         DbgLog("%s: Waiting for BacklightHandler\n", this->getName());
         waitForService(serviceMatching("BacklightHandler"));
@@ -194,6 +204,12 @@ bool ACPIBacklightPanel::start( IOService * provider )
 
     // after backlight handler is in place, now we can manipulate backlight level
     UInt32 current = queryACPICurentBrightnessLevel();
+    setProperty(kRawBrightness, current, 32);
+#if 0
+    _provider->setProperty("AppleBacklightAtBoot", current, 32);
+    _provider->setProperty("AppleMaxBrightness", BCLlevels[BCLlevelsCount-1], 32);
+#endif
+
     _committed_value = _value = _from_value = levelForValue(current);
     DbgLog("%s: current brightness: %d (%d)\n", this->getName(), _from_value, current);
     if (-1 != value)
@@ -244,6 +260,10 @@ void ACPIBacklightPanel::stop( IOService * provider )
         _lock = NULL;
     }
 
+#if 0
+    OSSafeReleaseNULL(_provider);
+#endif
+
     _backlightHandler = NULL;
 
     super::stop(provider);
@@ -282,12 +302,25 @@ void ACPIBacklightPanel::free()
 
 bool ACPIBacklightPanel::setBacklightHandler(BacklightHandler *handler, BacklightHandlerParams* params)
 {
-    if (!(_options & kWaitForHandler))
+    if (!useBacklightHandler())
         return false;
 
     _backlightHandler = handler;
     if (params)
         *params = _handlerParams;
+
+    return true;
+}
+
+bool ACPIBacklightPanel::useBacklightHandler()
+{
+    // do not allow setBacklightHandler with old PNLF patches
+    if (!(_options & kWaitForHandler))
+        return false;
+
+    // do not allow setBacklightHandler on versions prior to 10.11 unless kForceUseHandler is set
+    if (version_major < 15 && !(_options & kForceUseHandler))
+        return false;
 
     return true;
 }
@@ -759,7 +792,12 @@ void ACPIBacklightPanel::setACPIBrightnessLevel(UInt32 level)
         ////DbgLog("%s: setACPIBrightnessLevel %s(%u)\n", this->getName(), method, level);
 
         // just FYI... set RawBrightness property to actual current level
-        setProperty(kRawBrightness, queryACPICurentBrightnessLevel(), 32);
+        UInt32 current = queryACPICurentBrightnessLevel();
+        setProperty(kRawBrightness, current, 32);
+#if 0
+        if (_provider)
+            _provider->setProperty("ApplePanelRawBrightness", current, 32);
+#endif
     }
     else
         IOLog("ACPIBacklight: Error in setACPIBrightnessLevel %s(%u)\n",  method, level);

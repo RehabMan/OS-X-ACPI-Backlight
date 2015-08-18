@@ -105,9 +105,11 @@ public:
 private:
     BacklightHandler* _backlightHandler;
     IODisplay * _display;
-    
+#if 0 //REVIEW: experimental stuff
+    IOService * _provider;
+#endif
+
     IOACPIPlatformDevice *  gpuDevice, * backLightDevice;
-	OSData * supportedLevels;
 
     IOInterruptEventSource* _workSource;
     enum { kWorkSave = 0x01, kWorkSetBrightness = 0x02 };
@@ -146,8 +148,9 @@ private:
 	UInt32 minAC, maxBat, min, max;
     
     UInt32 _options;
-    enum { kDisableSmooth = 0x01, kWaitForHandler = 0x02, };
+    enum { kDisableSmooth = 0x01, kWaitForHandler = 0x02, kForceUseHandler = 0x04, };
     BacklightHandlerParams _handlerParams;
+    PRIVATE bool useBacklightHandler();
 
 	bool hasSaveMethod;
     int _value;  // osx value

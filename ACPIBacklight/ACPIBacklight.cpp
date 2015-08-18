@@ -221,7 +221,7 @@ bool ACPIBacklightPanel::start( IOService * provider )
     _saved_value = _committed_value;
 
     DbgLog("%s: min = %u, max = %u\n", this->getName(), min, max);
-	IOLog("ACPIBacklight: Version 3.0.1d2\n");
+	IOLog("ACPIBacklight: Version 3.0.3\n");
 
 	return true;
 }

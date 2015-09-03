@@ -221,7 +221,20 @@ bool ACPIBacklightPanel::start( IOService * provider )
     _saved_value = _committed_value;
 
     DbgLog("%s: min = %u, max = %u\n", this->getName(), min, max);
-	IOLog("ACPIBacklight: Version 3.0.3\n");
+
+    // announce version
+    extern kmod_info_t kmod_info;
+    IOLog("ACPIBacklight: Version %s starting on OS X Darwin %d.%d.\n", kmod_info.version, version_major, version_minor);
+
+    // place version/build info in ioreg properties RM,Build and RM,Version
+    char buf[128];
+    snprintf(buf, sizeof(buf), "%s %s", kmod_info.name, kmod_info.version);
+    setProperty("RM,Version", buf);
+#ifdef DEBUG
+    setProperty("RM,Build", "Debug-" LOGNAME);
+#else
+    setProperty("RM,Build", "Release-" LOGNAME);
+#endif
 
 	return true;
 }

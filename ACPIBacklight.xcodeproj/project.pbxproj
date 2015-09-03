@@ -7,7 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		71958FCE1417F35100A9E81D /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 71958FCC1417F35100A9E81D /* InfoPlist.strings */; };
 		71958FD01417F35100A9E81D /* ACPIBacklight.h in Headers */ = {isa = PBXBuildFile; fileRef = 71958FCF1417F35100A9E81D /* ACPIBacklight.h */; };
 		71958FDA1417F6AB00A9E81D /* Debug.h in Headers */ = {isa = PBXBuildFile; fileRef = 71958FD91417F6AB00A9E81D /* Debug.h */; };
 		71958FE314181ACA00A9E81D /* ACPIBacklight-Prefix.pch in Headers */ = {isa = PBXBuildFile; fileRef = 71958FE214181ACA00A9E81D /* ACPIBacklight-Prefix.pch */; };
@@ -166,7 +165,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				71958FCE1417F35100A9E81D /* InfoPlist.strings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -222,6 +220,7 @@
 				GCC_INLINES_ARE_PRIVATE_EXTERN = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"DEBUG=1",
+					"LOGNAME=\\\"${LOGNAME}\\\"",
 					"$(inherited)",
 				);
 				GCC_SYMBOLS_PRIVATE_EXTERN = YES;
@@ -234,7 +233,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				"LLVM_LTO[arch=x86_64]" = YES;
 				MACOSX_DEPLOYMENT_TARGET = 10.6;
-				MODULE_VERSION = 3.0.3;
+				MODULE_VERSION = 3.0.4;
 				OTHER_CFLAGS = "-fno-stack-protector";
 				"OTHER_LDFLAGS[arch=x86_64]" = "-dead_strip";
 				SDKROOT = macosx10.8;
@@ -258,6 +257,10 @@
 				DEPLOYMENT_POSTPROCESSING = YES;
 				GCC_ENABLE_KERNEL_DEVELOPMENT = YES;
 				GCC_INLINES_ARE_PRIVATE_EXTERN = YES;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"LOGNAME=\\\"${LOGNAME}\\\"",
+					"$(inherited)",
+				);
 				GCC_SYMBOLS_PRIVATE_EXTERN = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_MISSING_PROTOTYPES = YES;
@@ -268,7 +271,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				"LLVM_LTO[arch=x86_64]" = YES;
 				MACOSX_DEPLOYMENT_TARGET = 10.6;
-				MODULE_VERSION = 3.0.3;
+				MODULE_VERSION = 3.0.4;
 				OTHER_CFLAGS = "-fno-stack-protector";
 				"OTHER_LDFLAGS[arch=x86_64]" = "-dead_strip";
 				SDKROOT = macosx10.8;

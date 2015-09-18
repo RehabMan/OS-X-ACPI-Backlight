@@ -140,10 +140,10 @@ private:
     PRIVATE void setBrightnessLevel(UInt32 level);
     PRIVATE void setBrightnessLevelSmooth(UInt32 level);
 	
-	PRIVATE SInt32 setupIndexedLevels();
-	PRIVATE SInt32 findIndexForLevel(SInt32 BCLvalue);
+	PRIVATE UInt32 setupIndexedLevels();
+	PRIVATE UInt32 findIndexForLevel(UInt32 BCLvalue);
     
-	SInt32 * BCLlevels;
+	UInt32* BCLlevels;
 	UInt32 BCLlevelsCount;
 	UInt32 minAC, maxBat, min, max;
     

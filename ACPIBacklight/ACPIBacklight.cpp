@@ -300,7 +300,7 @@ void ACPIBacklightPanel::free()
     
 	if (BCLlevels)
     {
-		IODelete(BCLlevels, SInt32, BCLlevelsCount);
+		delete[] BCLlevels;
         BCLlevels = NULL;
     }
 	
@@ -1056,15 +1056,14 @@ void ACPIBacklightPanel::getDeviceControl()
 }
 
 
-SInt32 ACPIBacklightPanel::findIndexForLevel(SInt32 BCLvalue)
+UInt32 ACPIBacklightPanel::findIndexForLevel(UInt32 BCLvalue)
 {
-	for (int i = 0; i < BCLlevelsCount; i++)
+    for (int i = 0; i < BCLlevelsCount; i++)
 	{
-		if (BCLlevels[i] >= BCLvalue)
+		if (BCLvalue < BCLlevels[i])
 		{
-            i = i > 0 ? i-1 : 0;
-			DbgLog("%s: findIndexForLevel(%d) is %d\n", this->getName(), BCLvalue, i);
-			return i;
+			DbgLog("%s: findIndexForLevel(%d) is %d\n", this->getName(), BCLvalue, i-1);
+			return i-1;
 		}
 	}
     DbgLog("%s: findIndexForLevel(%d) did not find\n", this->getName(), BCLvalue);
@@ -1072,7 +1071,7 @@ SInt32 ACPIBacklightPanel::findIndexForLevel(SInt32 BCLvalue)
 }
 
 
-SInt32 ACPIBacklightPanel::setupIndexedLevels()
+UInt32 ACPIBacklightPanel::setupIndexedLevels()
 {
     DbgLog("%s::%s()\n", this->getName(),__FUNCTION__);
     
@@ -1093,7 +1092,7 @@ SInt32 ACPIBacklightPanel::setupIndexedLevels()
 		
         //TODO : manage the case when the list has no order! Linux do that
 		//test the order of the list
-		SInt32 min, max;
+		UInt32 min, max;
 		num = OSDynamicCast(OSNumber, levels->getObject(2));
 		min = num->unsigned32BitValue();
 		num = OSDynamicCast(OSNumber, levels->getObject(BCLlevelsCount-1));
@@ -1101,7 +1100,7 @@ SInt32 ACPIBacklightPanel::setupIndexedLevels()
 		
 		if (max < min) //list is reverted !
 		{
-			BCLlevels = IONew(SInt32, BCLlevelsCount);
+			BCLlevels = new UInt32[BCLlevelsCount];
 			for (int i = 0; i< BCLlevelsCount; i++) {
 				num = OSDynamicCast(OSNumber, levels->getObject(BCLlevelsCount -1 -i));
 				BCLlevels[i] = num->unsigned32BitValue();
@@ -1110,7 +1109,7 @@ SInt32 ACPIBacklightPanel::setupIndexedLevels()
 		else
 		{
 			BCLlevelsCount = BCLlevelsCount -2;
-			BCLlevels = IONew(SInt32, BCLlevelsCount);
+			BCLlevels = new UInt32[BCLlevelsCount];
 			for (int i = 0; i< BCLlevelsCount; i++) {
 				num = OSDynamicCast(OSNumber, levels->getObject(i+2));
 				BCLlevels[i] = num->unsigned32BitValue();
@@ -1127,7 +1126,7 @@ SInt32 ACPIBacklightPanel::setupIndexedLevels()
 		setDebugProperty("Brightness Control Levels", levels);
         levels->release();
 		
-		return BCLlevelsCount -1;
+		return BCLlevelsCount-1;
 	}
 	return 0;
 }
@@ -1483,9 +1482,11 @@ UInt32 IntelBacklightHandler::getBacklightLevel()
     {
         case kFBTypeHaswellBroadwell:
             result = REG32_READ(LEVX) & 0xFFFF;
+            break;
 
         case kFBTypeIvySandy:
             result = REG32_READ(LEVL);
+            break;
     }
 
     // adjust result to be within limits set by XRGL and XRGH

@@ -188,6 +188,8 @@ bool ACPIBacklightPanel::start( IOService * provider )
     setProperty("KLVX", 1, 32);
 #endif
 
+    IORecursiveLockLock(_lock);
+
     // make the service available for clients like 'ioio'...
     registerService();
 
@@ -219,6 +221,8 @@ bool ACPIBacklightPanel::start( IOService * provider )
         setBrightnessLevelSmooth(value);
     }
     _saved_value = _committed_value;
+
+    IORecursiveLockUnlock(_lock);
 
     DbgLog("%s: min = %u, max = %u\n", this->getName(), min, max);
 
@@ -382,6 +386,8 @@ bool ACPIBacklightPanel::setDisplay( IODisplay * display )
 {    
     DbgLog("%s::%s()\n", this->getName(),__FUNCTION__);
 
+    IORecursiveLockLock(_lock);
+
     // retain new display (also allow setting to same instance as previous)
     if (display)
         display->retain();
@@ -395,12 +401,19 @@ bool ACPIBacklightPanel::setDisplay( IODisplay * display )
         // update brightness levels
         doUpdate();
     }
+
+    IORecursiveLockUnlock(_lock);
+
     return true;
 }
 
 
 bool ACPIBacklightPanel::doIntegerSet( OSDictionary * params, const OSSymbol * paramName, UInt32 value)
 {
+    bool result = true;
+
+    IORecursiveLockLock(_lock);
+    
     DbgLog("%s::%s(\"%s\", %d)\n", this->getName(), __FUNCTION__, paramName->getCStringNoCopy(), value);
     if ( gIODisplayBrightnessKey->isEqualTo(paramName))
     {   
@@ -421,13 +434,15 @@ bool ACPIBacklightPanel::doIntegerSet( OSDictionary * params, const OSSymbol * p
         if (0xFF == value)
         {
             setBrightnessLevelSmooth(_saved_value);
-            return false;
+            result = false;
         }
-        //REVIEW: end workaround...
-        setBrightnessLevelSmooth(value);
-        if (value > 5) // more hacks for Yosemite (don't save really low values)
-            _saved_value = value;
-        return true;
+        else
+        {
+            //REVIEW: end workaround...
+            setBrightnessLevelSmooth(value);
+            if (value > 5) // more hacks for Yosemite (don't save really low values)
+                _saved_value = value;
+        }
     }
     else if (gIODisplayParametersCommitKey->isEqualTo(paramName))
     {
@@ -440,9 +455,11 @@ bool ACPIBacklightPanel::doIntegerSet( OSDictionary * params, const OSSymbol * p
         // save to BIOS nvram via ACPI
         if (hasSaveMethod)
             saveACPIBrightnessLevel(BCLlevels[index]);
-        return true;
     }
-    return false;
+
+    IORecursiveLockUnlock(_lock);
+
+    return result;
 }
 
 
@@ -457,6 +474,8 @@ bool ACPIBacklightPanel::doUpdate( void )
 {
     DbgLog("enter %s::%s()\n", this->getName(),__FUNCTION__);
     bool result = false;
+
+    IORecursiveLockLock(_lock);
 
     OSDictionary* newDict = 0;
 	OSDictionary* allParams = OSDynamicCast(OSDictionary, _display->copyProperty(gIODisplayParametersKey));
@@ -507,6 +526,8 @@ bool ACPIBacklightPanel::doUpdate( void )
 
         result = true;
 	}
+
+    IORecursiveLockUnlock(_lock);
 
     DbgLog("exit %s::%s()\n", this->getName(),__FUNCTION__);
     return result;

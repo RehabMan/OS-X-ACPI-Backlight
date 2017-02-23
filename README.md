@@ -10,7 +10,7 @@ Install the kext using your favorite kext installer utility, such as Kext Wizard
 
 Downloads are available on bitbucket:
 
-https://bitbucket.org/RehabMan/os-x-acpi-backlight/downloads
+https://bitbucket.org/RehabMan/os-x-acpi-backlight/downloads/
 
 
 ### Build Environment
